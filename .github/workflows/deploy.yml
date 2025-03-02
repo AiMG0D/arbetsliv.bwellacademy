@@ -35,5 +35,5 @@ jobs:
           script: |
             cd ${{ vars.DEPLOY_PATH }}
             composer install
-            sudo chown -R www-data:www-data ${{ vars.DEPLOY_PATH }}
+            sudo chown -R vito:vito ${{ vars.DEPLOY_PATH }}
             sudo chmod -R 755 ${{ vars.DEPLOY_PATH }}
