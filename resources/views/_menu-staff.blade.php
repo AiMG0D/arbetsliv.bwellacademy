@@ -22,6 +22,6 @@
     @endif
 @else
     @if (App::isLocale('sv'))
-        <li><a target="_blank" href="{{ url('/etc/Manual Coach Arbetsliv.docx') }}">Manual</a></li>
+        <li><a target="_blank" href="https://www.canva.com/design/DAGgJrXoVRo/f7pRvPDEmVzQeLbzumhwFg/view?utm_content=DAGgJrXoVRo&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h8ecd170e53">Manual</a></li>
     @endif
 @endif
