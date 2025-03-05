@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Section;
 
 
+use App\Unit;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -16,11 +17,11 @@ class HomeController extends Controller
     public function getIndex(Request $request)
     {
         $user = $request->user();
-
-        if ($user->isSuperAdmin()) {
-            $sections = Section::all();
-        } else {
-            $sections = Section::where('unit_id', $user->unit_id)->get();
+         if ($user->isSuperAdmin()) {
+             $units = Unit::all();
+             $sections = Section::whereNull('archived_at')->whereIn('unit_id', $units->pluck('id'))->get();
+         } else {
+            $sections = Section::whereNull('archived_at')->where('unit_id', $user->unit_id)->get();
         }
 
         return view($user->isStudent() ? 'tiles-student' : 'tiles-staff', [

@@ -769,11 +769,17 @@ class StatsController extends Controller
 
                     $sections = Section::where(function ($query) use ($unitsAndSections) {
                         foreach ($unitsAndSections as $unitId => $unitSections) {
-                            $query->orWhere(function ($query) use ($unitId, $unitSections) {
+                            $query->orWhere(function ($query1) use ($unitId, $unitSections) {
                                 if (in_array(0, $unitSections)) {
-                                    $query->where('unit_id', $unitId);
+
+                                    $query1->where('unit_id', $unitId);
                                 } else {
-                                    $query->where('unit_id', $unitId)->whereIn('id', $unitSections);
+                                    $sectionIds = [];
+                                    foreach ($unitSections as $sectionId) {
+                                        $sectionIds[] =(int) $sectionId;
+                                    }
+
+                                     $query1->where('unit_id', $unitId)->whereIn('id', $sectionIds);
                                 }
                             });
                         }
@@ -940,7 +946,7 @@ class StatsController extends Controller
         } elseif ($sex == 2) {
             $profilesQuery = $profilesQuery->where('users.sex', 'F');
         } else {
-            $profilesQuery = $profilesQuery->where('users.sex', '!=', 'U');
+           // $profilesQuery = $profilesQuery->where('users.sex', '!=', 'U');
         }
 
         if ($flags & FilterFlags::DateFrom || $flags & FilterFlags::DateTo) {
