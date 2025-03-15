@@ -25,19 +25,22 @@ use Illuminate\Support\Str;
 
 class StatsController extends Controller
 {
+
+
+
     private $categoryPageMap = [
         // physical
-        'agility' => 'physical',
+       // 'agility' => 'physical',
         'strength2' => 'physical',
         'strLegs' => 'physical',
         'strBack' => 'physical',
         'strArms' => 'physical',
         'strAbs' => 'physical',
-        'balance' => 'physical',
-        'motor' => 'physical',
+       // 'balance' => 'physical',
+      //  'motor' => 'physical',
         'posture' => 'physical',
-        'fitness' => 'physical',
-        'stepcount' => 'physical',
+      //  'fitness' => 'physical',
+       // 'stepcount' => 'physical',
         'weight' => 'physical',
         'physical' => 'physical',
         'physicalTraining' => 'physical',
@@ -493,6 +496,7 @@ class StatsController extends Controller
         return ['status' => 'ok', 'data' => $values];
     }
 
+
     public function getFilteredSelection($filters)
     {
         $user = Auth::user();
@@ -666,7 +670,8 @@ class StatsController extends Controller
 
                 $sections[] = $sectionEntry['section'];
             }
-        } elseif ($flags & FilterFlags::Country) {
+        }
+        elseif ($flags & FilterFlags::Country) {
             $countriesWithSections = get_all_country_sections();
             $country = intval($filters['country']);
             if ($country > 0) {
@@ -748,7 +753,8 @@ class StatsController extends Controller
             $showSelectionLink = true;
             $sampleId = intval($filters['sample-group']);
             $sampleMembers = SampleGroupMember::where('sample_group_id', $sampleId)->get();
-        } else {
+        }
+        else {
             if ($user->isSuperAdmin()) {
                 if ($flags & FilterFlags::SectionOrUnit) {
                     $showSelectionLink = true;
@@ -1412,6 +1418,9 @@ class StatsController extends Controller
 
             Cache::put($cachePrefix . $cacheId, $profileIds, 300);
         }
+
+
+
 
         return [
             'filters' => $filters,

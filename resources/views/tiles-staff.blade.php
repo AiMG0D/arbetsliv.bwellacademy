@@ -17,6 +17,13 @@ Välkommen {{ $user->full_name() }}
                 </option>
             <?php endforeach; ?>
         </select>
+        <select class="dropdown" style="background-color: white;" id="genderDropdown">
+            <option value="">
+                Välj kön
+            </option>
+            <option value="1">Man</option>
+            <option value="2">Kvinna</option>
+        </select>
 
     </div>
     <div class="charts-container" style="margin-bottom: 20px;">
@@ -32,18 +39,107 @@ Välkommen {{ $user->full_name() }}
         </div>
     </div>
 
-    <canvas id="physicalChart" width="400" height="200"></canvas>
-    <canvas id="wellbeingChart" width="400" height="200"></canvas>
-    <canvas id="antChart" width="400" height="200"></canvas>
-    <canvas id="energyChart" width="400" height="200"></canvas>
-    <canvas id="freetimeChart" width="400" height="200"></canvas>
-    <canvas id="workChart" width="400" height="200"></canvas>
-    <canvas id="kasamChart" width="400" height="200"></canvas>
 
-    <div class="chart-card" style="margin-top: 20px;">
-        <h3 class="chart-title">Feedback Statistics</h3>
-        <canvas id="feedbackChart"></canvas>
+    <div class="charts-container" style="margin-bottom: 20px;">
+        <div class="chart-card" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="width: 100%;">
+                <h3 class="chart-title">Fysisk kapacitet - tester och frågor</h3>
+
+                <div id="physicalStackedChart"></div>
+
+            </div>
+
+        </div>
     </div>
+
+
+    <div class="charts-container" style="margin-bottom: 20px;">
+        <div class="chart-card" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="width: 100%;">
+                <h3 class="chart-title">Upplevd hälsa</h3>
+
+                <div id="wellbeingChart"></div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="charts-container" style="margin-bottom: 20px;">
+        <div class="chart-card" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="width: 100%;">
+                <h3 class="chart-title">Beroendeområden</h3>
+
+                <div id="antChart"></div>
+
+            </div>
+
+        </div>
+    </div>
+
+
+    <div class="charts-container" style="margin-bottom: 20px;">
+        <div class="chart-card" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="width: 100%;">
+                <h3 class="chart-title">Mat och energi</h3>
+
+                <div id="energyChart"></div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="charts-container" style="margin-bottom: 20px;">
+        <div class="chart-card" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="width: 100%;">
+                <h3 class="chart-title">Livet på fritiden</h3>
+
+                <div id="freetimeChart"></div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="charts-container" style="margin-bottom: 20px;">
+        <div class="chart-card" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="width: 100%;">
+                <h3 class="chart-title">Mitt arbete</h3>
+
+                <div id="workChart"></div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="charts-container" style="margin-bottom: 20px;">
+        <div class="chart-card" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="width: 100%;">
+                <h3 class="chart-title">Känsla av sammanhang (KASAM)</h3>
+
+                <div id="kasamChart"></div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="charts-container" style="margin-bottom: 20px;">
+        <div class="chart-card" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="width: 100%;">
+                <h3 class="chart-title">Återkoppling</h3>
+
+                <div id="feedbackChart"></div>
+
+            </div>
+
+        </div>
+    </div>
+
+
+
 
 </div>
 
@@ -108,23 +204,47 @@ Välkommen {{ $user->full_name() }}
             flex: 1 1 100%;
         }
     }
+    .checkbox-container {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    .checkbox-label input {
+        margin-right: 5px;
+        width: 18px;
+        height: 18px;
+    }
+
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
 <script>
     let chartInstances = [];
-
-    function fetchDataAndRenderCharts(selectedSectionId) {
+    let gender = null
+    let sectionId = null
+    function fetchDataAndRenderCharts() {
 
         chartInstances.forEach(chart => chart.destroy());
         chartInstances = [];
 
-        $.ajax("https://arbetsliv.bwellacademy.com" + "/statistics/filter/set", {
+        $.ajax("/statistics/filter/set", {
             dataType: "json",
             method: "post",
-            data: selectedSectionId ? {
-                section: selectedSectionId
-            } : {}, // Send data only if a section is selected
+            data: {
+                section: sectionId,
+                sex: gender ? gender : ''
+            }, // Send data only if a section is selected
             success: function(response) {
                 console.log(response);
                 if (!response || Object.keys(response).length === 0) {
@@ -263,80 +383,282 @@ Välkommen {{ $user->full_name() }}
 
                 chartInstances.push(barChart);
 
-                createChart('physicalChart', Object.values(response.mappedLabels.physical ?? {}), Object.values(response.mappedValues.physical ?? {}));
-                createChart('wellbeingChart', Object.values(response.mappedLabels.wellbeing ?? {}), Object.values(response.mappedValues.wellbeing ?? {}));
-                createChart('antChart', Object.values(response.mappedLabels.ant ?? {}), Object.values(response.mappedValues.ant ?? {}));
-                createChart('energyChart', Object.values(response.mappedLabels.energy ?? {}), Object.values(response.mappedValues.energy ?? {}));
-                createChart('freetimeChart', Object.values(response.mappedLabels.freetime ?? {}), Object.values(response.mappedValues.freetime ?? {}));
-                createChart('workChart', Object.values(response.mappedLabels.work ?? {}), Object.values(response.mappedValues.work ?? {}));
-                createChart('kasamChart', Object.values(response.mappedLabels.kasam ?? {}), Object.values(response.mappedValues.kasam ?? {}));
+
+                createStackedColumnChart('physicalStackedChart',  response.mappedLabels.physical ?? {},  response.mappedValues.physical ?? {});
+                createStackedColumnChart('wellbeingChart',  response.mappedLabels.wellbeing ?? {},  response.mappedValues.wellbeing ?? {});
+                createStackedColumnChart('antChart',  response.mappedLabels.ant ?? {},  response.mappedValues.ant ?? {});
+                createStackedColumnChart('energyChart',  response.mappedLabels.energy ?? {},  response.mappedValues.energy ?? {});
+                createStackedColumnChart('freetimeChart',  response.mappedLabels.freetime ?? {},  response.mappedValues.freetime ?? {});
+                createStackedColumnChart('workChart',  response.mappedLabels.work ?? {},  response.mappedValues.work ?? {});
+
+                console.log("Kasam",response.mappedValues.kasam)
+                createColumnChart('kasamChart',  response.mappedLabels.kasam ?? {},  response.mappedValues.kasam ?? {});
+               // createChart('physicalChart',  response.mappedLabels.physical ?? {},  response.mappedValues.physical ?? {});
+                //createChart('wellbeingChart',  response.mappedLabels.wellbeing ?? {}, response.mappedValues.wellbeing ?? {});
+               // createChart('antChart',  response.mappedLabels.ant ?? {}, response.mappedValues.ant ?? {});
+               // createChart('energyChart', response.mappedLabels.energy ?? {}, response.mappedValues.energy ?? {});
+              //  createChart('freetimeChart', response.mappedLabels.freetime ?? {}, response.mappedValues.freetime ?? {});
+              //  createChart('workChart', response.mappedLabels.work ?? {}, response.mappedValues.work ?? {});
+              //  createChart('kasamChart', response.mappedLabels.kasam ?? {}, response.mappedValues.kasam ?? {});
 
             }
         });
 
 
 
-        $.ajax("https://arbetsliv.bwellacademy.com" + "/statistics/feedback", {
+        $.ajax("/statistics/feedback", {
             dataType: "json",
             method: "get",
-            data: selectedSectionId ? {
-                section: selectedSectionId
-            } : {}, // Send data only if a section is selected
+            data: {
+                section: sectionId,
+                sex: gender ? gender : ''
+            },
             success: function(response) {
-                console.log(response);
-                const feedbackCtx = document.getElementById('feedbackChart').getContext('2d');
-                const feedbackChart = new Chart(feedbackCtx, {
+
+                // Mapping labels
+                const labelMapping = {
+                    agree: 'Agree',
+                    neutral: 'Neutral',
+                    disagree: 'Disagree'
+                };
+
+                // Mapping values based on response
+                const valueMapping = {
+                    agree: [response.count_one, 0, 0],
+                    neutral: [response.count_zero, 0, 0],
+                    disagree: [response.count_negative_one, 0, 0]
+                };
+
+                // Create the chart using the function
+                createFeedbackChart( response);
+            }
+        });
+
+        function createStackedColumnChart(chartId, labelMapping, valueMapping) {
+            // Extract labels and values dynamically based on the mapping
+            const labels = Object.values(labelMapping);
+            const values = labels.map(label => {
+                const key = Object.keys(labelMapping).find(k => labelMapping[k] === label);
+                return valueMapping[key] || [0, 0, 0]; // Default to [0, 0, 0] if no value is found
+            });
+            const colors = ['#FF0000', '#00FF00', '#0000FF']; // Red, Green, Blue
+            // Prepare dataset for ApexCharts
+            const series = [
+                {
+                    name: 'Risk',
+                    data: values.map(v => v[0]) // Risk values
+                },
+                {
+                    name: 'Frisk',
+                    data: values.map(v => v[1]) // Frisk values
+                }
+            ];
+
+            // ApexCharts configuration
+            const options = {
+                series: series,
+                colors: colors, // Apply custom colors
+                chart: {
                     type: 'bar',
-                    data: {
-                        labels: ['Agree', 'Neutral', 'Disagree'],
-                        datasets: [{
-                            label: 'Feedback Count',
-                            data: [response.count_one, response.count_zero, response.count_negative_one],
-                            backgroundColor: ['#7FE563', '#3276fb', '#eb4034'],
-                            borderWidth: 1
-                        }]
+                    height: 450,
+                    stacked: true,
+                    toolbar: {
+                        show: true
                     },
+                    zoom: {
+                        enabled: true
+                    }
+                },
+                responsive: [{
+                    breakpoint: 480,
                     options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.dataset.label || '';
-                                        const value = context.raw;
-                                        return `${label}: ${value}`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            },
-                            y: {
-                                grid: {
-                                    color: '#e5e7eb'
-                                },
-                                ticks: {
-                                    stepSize: 5
+                        legend: {
+                            position: 'bottom',
+                            offsetX: -10,
+                            offsetY: 0
+                        }
+                    }
+                }],
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        borderRadius: 10,
+                        borderRadiusApplication: 'end', // 'around', 'end'
+                        borderRadiusWhenStacked: 'last', // 'all', 'last'
+                        dataLabels: {
+                            total: {
+                                enabled: true,
+                                style: {
+                                    fontSize: '13px',
+                                    fontWeight: 900
                                 }
                             }
                         }
                     }
-                });
+                },
+                xaxis: {
+                    categories: labels, // Use dynamic labels
+                    labels: {
+                        formatter: function (value) {
+                            return value; // Display the label as is
+                        }
+                    }
+                },
+                legend: {
+                    position: 'right',
+                    offsetY: 40
+                },
+                fill: {
+                    opacity: 1
+                }
+            };
 
-                chartInstances.push(feedbackChart);
-            }
-        });
+            // Render the chart
+            const chart = new ApexCharts(document.querySelector(`#${chartId}`), options);
+            chart.render();
+        }
+        function createColumnChart(chartId, labelMapping, valueMapping) {
+            // Extract labels and corresponding values dynamically
+            const labels = Object.values(labelMapping);
+            const values = labels.map(label => {
+                const key = Object.keys(labelMapping).find(k => labelMapping[k] === label);
+                return valueMapping[key] || [0, 0, 0]; // Default to [0, 0, 0] if no value is found
+            });
+
+            const colors = ['#FF0000', '#00FF00']; // Red for Risk, Green for Frisk
+
+            // Prepare dataset for ApexCharts
+            const series = [
+                {
+                    name: 'Risk',
+                    data: values.map(v => v[0]) // Risk values
+                },
+                {
+                    name: 'Frisk',
+                    data: values.map(v => v[1]) // Frisk values
+                }
+            ];
+
+            // ApexCharts configuration
+            const options = {
+                series: series,
+                colors: colors, // Apply custom colors
+                chart: {
+                    type: 'bar',
+                    height: 450,
+                    stacked: false, // Ensure bars are NOT stacked
+                    toolbar: {
+                        show: true
+                    },
+                    zoom: {
+                        enabled: true
+                    }
+                },
+                responsive: [{
+                    breakpoint: 480,
+                    options: {
+                        legend: {
+                            position: 'bottom',
+                            offsetX: -10,
+                            offsetY: 0
+                        }
+                    }
+                }],
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        borderRadius: 8,
+                        columnWidth: '50%', // Adjust bar width
+                        dataLabels: {
+                            position: 'top', // Ensure labels are readable
+                        }
+                    }
+                },
+                dataLabels: {
+                    enabled: true,
+                    formatter: function (val) {
+                        return val.toFixed(2); // Display formatted values
+                    },
+                    offsetY: -10,
+                    style: {
+                        fontSize: '12px',
+                        colors: ['#333']
+                    }
+                },
+                xaxis: {
+                    categories: labels, // Use dynamic labels
+                    labels: {
+                        rotate: -45, // Improve readability for long labels
+                        style: {
+                            fontSize: '12px'
+                        }
+                    }
+                },
+                legend: {
+                    position: 'right',
+                    offsetY: 40
+                },
+                fill: {
+                    opacity: 1
+                }
+            };
+
+            // Render the chart
+            const chart = new ApexCharts(document.querySelector(`#${chartId}`), options);
+            chart.render();
+        }
+
+        function createFeedbackChart(response) {
+            console.log(response);
+
+            const labels = ['Håller helt med', 'Håller delvis med', 'Håller inte med'];
+            const values = [response.count_one, response.count_zero, response.count_negative_one];
+
+            const options = {
+                chart: {
+                    type: 'bar',
+                    height: 450
+                },
+                series: [{
+                    name: 'Återkoppling',
+                    data: values
+                }],
+                xaxis: {
+                    categories: labels
+                },
+                colors: ['#10B981','#3B82F6',  '#EF4444'], // Different colors for Agree, Neutral, Disagree
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: '50%', // Adjust bar width
+                        distributed: true, // Ensures each bar gets its own color
+                        borderRadius: 10
+                    }
+                },
+                dataLabels: {
+                    enabled: true
+                }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#feedbackChart"), options);
+            chart.render();
+        }
 
         // Function to create a chart
-        function createChart(chartId, labels, values) {
+        function createChart(chartId, labelMapping, valueMapping) {
             const ctx = document.getElementById(chartId).getContext('2d');
+            const labels = Object.values(labelMapping);
+            const values = labels.map(label => {
+                const key = Object.keys(labelMapping).find(k => labelMapping[k] === label);
+                return valueMapping[key] || [0, 0, 0]; // Default to [0, 0, 0] if no value is found
+            });
+// Calculate the maximum value in the dataset
+            const maxValue = Math.max(...values.flat());
+
+            // Add a margin to the maximum value (e.g., 20% of the max value)
+            const margin = maxValue * 0.1;
+            const suggestedMax = maxValue + margin;
+
             chart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -379,16 +701,20 @@ Välkommen {{ $user->full_name() }}
                     scales: {
                         x: {
                             grid: {
-                                display: false
+                                display: true
                             }
                         },
                         y: {
                             grid: {
                                 color: '#e5e7eb'
                             },
-                            ticks: {
-                                stepSize: 20
-                            }
+                            stepSize: 1, // Step size for sub-ranges
+                            callback: function(value) {
+                                // Display intermediate ticks
+                                return value;
+                            },
+                            suggestedMax: suggestedMax // Add margin to the y-axis
+
                         }
                     }
                 }
@@ -399,13 +725,19 @@ Välkommen {{ $user->full_name() }}
     }
 
     window.addEventListener('load', function() {
-        const initialSectionId = document.getElementById('sectionDropdown').value;
-        fetchDataAndRenderCharts(initialSectionId);
+        sectionId = document.getElementById('sectionDropdown').value
+        fetchDataAndRenderCharts();
     });
 
     document.getElementById('sectionDropdown').addEventListener('change', function() {
         const selectedSectionId = this.value;
-        fetchDataAndRenderCharts(selectedSectionId);
+        sectionId = this.value
+        fetchDataAndRenderCharts();
+    });
+    document.getElementById('genderDropdown').addEventListener('change', function() {
+        const selectedSectionId = this.value;
+        gender = this.value
+        fetchDataAndRenderCharts();
     });
 </script>
 @stop
