@@ -441,16 +441,17 @@ Välkommen {{ $user->full_name() }}
                 const key = Object.keys(labelMapping).find(k => labelMapping[k] === label);
                 return valueMapping[key] || [0, 0, 0]; // Default to [0, 0, 0] if no value is found
             });
-            const colors = ['#FF0000', '#00FF00', '#0000FF']; // Red, Green, Blue
+            const colors = [ '#00FF00','#FF0000', '#0000FF']; // Red, Green, Blue
             // Prepare dataset for ApexCharts
             const series = [
-                {
-                    name: 'Risk',
-                    data: values.map(v => v[0]) // Risk values
-                },
+
                 {
                     name: 'Frisk',
-                    data: values.map(v => v[1]) // Frisk values
+                    data: values.map(v => v[0]) // Frisk values
+                },
+                {
+                    name: 'Risk',
+                    data: values.map(v => v[1]) // Risk values
                 }
             ];
 

@@ -57,6 +57,7 @@ class RegisterController extends Controller
             'secret_code' => 'required',
             'id' => 'required',
             'birth_date' =>'required|date',
+            'sex' => 'required|in:M,F',
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -86,6 +87,7 @@ class RegisterController extends Controller
         $user->first_name = $request->input('first_name');
         $user->last_name = $request->input('last_name');
         $user->email = $email;
+        $user->sex = $request->input('sex');
         $user->birth_date = \Carbon\Carbon::parse($request->input('birth_date'));
         $user->section_id = $id;
         $user->password = Hash::make($request->input('password'));
@@ -95,7 +97,7 @@ class RegisterController extends Controller
         return redirect(url('/'));
 
     }
-    
+
 
     public function postComplete(Request $request)
     {
