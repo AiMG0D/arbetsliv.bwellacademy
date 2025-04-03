@@ -130,3 +130,5 @@ Filer för översättning.
 
 ### Katalogen `storage/logs`
 Loggfiler.
+
+mysqldump -u root -p bwellbackend > /home/vito/bwell/backend/21_3_2025.sql

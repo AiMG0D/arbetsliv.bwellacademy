@@ -41,8 +41,8 @@ class StatsController extends Controller
         'posture' => 'physical',
       //  'fitness' => 'physical',
        // 'stepcount' => 'physical',
-        'weight' => 'physical',
-        'physical' => 'physical',
+      //  'weight' => 'physical',
+       // 'physical' => 'physical',
         'physicalTraining' => 'physical',
         'physicalCondition' => 'physical',
         'activitiesTimeSpent' => 'physical',
@@ -63,10 +63,10 @@ class StatsController extends Controller
         // energy
         'foodHabits' => 'energy',
         'foodEnergyBalance' => 'energy',
-        'foodFruit' => 'energy',
+      //  'foodFruit' => 'energy',
         'foodSweets' => 'energy',
-        'foodFluid' => 'energy',
-        'foodEnergyDrinks' => 'energy',
+      //  'foodFluid' => 'energy',
+      //  'foodEnergyDrinks' => 'energy',
         // freetime
         'freetime' => 'freetime',
         'media' => 'freetime',
@@ -757,6 +757,7 @@ class StatsController extends Controller
         else {
             if ($user->isSuperAdmin()) {
                 if ($flags & FilterFlags::SectionOrUnit) {
+                    Log::info("Sections Filter ");
                     $showSelectionLink = true;
 
                     $unitsAndSections = [];
@@ -773,7 +774,7 @@ class StatsController extends Controller
                         $unitsAndSections[$unitId][] = $sectionId;
                     }
 
-                    $sections = Section::where(function ($query) use ($unitsAndSections) {
+                     $sections = Section::where(function ($query) use ($unitsAndSections) {
                         foreach ($unitsAndSections as $unitId => $unitSections) {
                             $query->orWhere(function ($query1) use ($unitId, $unitSections) {
                                 if (in_array(0, $unitSections)) {
@@ -790,7 +791,8 @@ class StatsController extends Controller
                             });
                         }
                     })->get();
-                } else {
+                }
+                else {
                     $allSectionsQuery = DB::table('sections')
                         ->select('sections.*')
                         ->join('unit', 'unit.id', '=', 'sections.unit_id')
@@ -811,7 +813,8 @@ class StatsController extends Controller
                         $sections[] = $result;
                     }
                 }
-            } else {
+            }
+            else {
                 $showSelectionLink = true;
                 $unitId = $user->unit_id;
                 $unit = $user->unit;
@@ -1064,6 +1067,7 @@ class StatsController extends Controller
 
         $profilesQueryResults = $profilesQuery->get();
 
+        Log::info("Total Profiles: ".count($profilesQueryResults));
         $checkProfileType = false;
         if ($flags & FilterFlags::ProfileType) {
             $checkProfileType = true;
@@ -1319,6 +1323,7 @@ class StatsController extends Controller
 
         //$pages = array_reverse($pages);
 
+        Log::info("Total fILTERED Cat: ".count($filteredCategories));
         $barLabels = [];
         $barLabelsExt = [];
         $mappedLabels = [];
@@ -1364,8 +1369,9 @@ class StatsController extends Controller
             );
 
         $facts = [];
-
-        // $profileSQLQuery = query_to_string($factorQuery);
+        $fq= $factorQuery->get();
+        Log::info("Factor Query Result: ".count($fq));
+         // $profileSQLQuery = query_to_string($factorQuery);
 
         foreach ($factorQuery->get() as $result) {
             $factorId = $result->category_id;
