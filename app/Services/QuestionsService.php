@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Services;
+use Illuminate\Support\Facades\Cache;
 
 use App\QuestionnairePage;
 use Illuminate\Support\Str;
@@ -47,6 +48,8 @@ class QuestionsService
 
     public function lifeQuestions(): array
     {
+
+        $key = env('DEEPL_KEY');
         $pages = QuestionnairePage::whereNotIn('name', ['work', 'school'])
             ->with('groups.questions.type')
             ->get();
@@ -202,6 +205,65 @@ class QuestionsService
             ];
         }
 
+
+/*
+        if ($key) {
+            $deeplClient = new \DeepL\DeepLClient($key);
+
+            foreach ($sections as &$section) {
+                $page_label = $section['pageLabel'];
+                $cacheKey = 'deepl:pageLabel:' . md5($page_label);
+                $translated = Cache::remember($cacheKey, now()->addDays(7), function () use ($deeplClient, $page_label) {
+                    return $deeplClient->translateText($page_label, 'sv', 'en-US')->text;
+                });
+                $section['pageLabel'] = $translated;
+
+                foreach ($section['groups'] as &$group) {
+                    // Translate group label
+                    if (isset($group['label'])) {
+                        $cacheKey = 'deepl:groupLabel:' . md5($group['label']);
+                        $group['label'] = Cache::remember($cacheKey, now()->addDays(7), function () use ($deeplClient, $group) {
+                            try {
+                                return $deeplClient->translateText($group['label'], 'sv', 'en-US')->text;
+                            } catch (\Exception $e) {
+                                \Log::error('DeepL translation error (group label): ' . $e->getMessage());
+                                return $group['label'];
+                            }
+                        });
+                    }
+
+                    // Translate question descriptions
+                    if (isset($group['questions']) && is_array($group['questions'])) {
+                        foreach ($group['questions'] as &$question) {
+                            if (!empty($question['description'])) {
+                                $cacheKey = 'deepl:questionDesc:' . md5($question['description']);
+                                $question['description'] = Cache::remember($cacheKey, now()->addDays(7), function () use ($deeplClient, $question) {
+                                    try {
+                                        return $deeplClient->translateText($question['description'], 'sv', 'en-US')->text;
+                                    } catch (\Exception $e) {
+                                        \Log::error('DeepL translation error (question description): ' . $e->getMessage());
+                                        return $question['description'];
+                                    }
+                                });
+                            }
+
+                            if (!empty($question['poster']) && !empty($question['poster']['text'])) {
+                                $cacheKey = 'deepl:posterText:' . md5($question['poster']['text']);
+                                $question['poster']['text'] = Cache::remember($cacheKey, now()->addDays(7), function () use ($deeplClient, $question) {
+                                    try {
+                                        return $deeplClient->translateText($question['poster']['text'], 'sv', 'en-US')->text;
+                                    } catch (\Exception $e) {
+                                        \Log::error('DeepL translation error (poster text): ' . $e->getMessage());
+                                        return $question['poster']['text'];
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+*/
         return [
             'sections' => $sections,
         ];

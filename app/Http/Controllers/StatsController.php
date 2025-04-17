@@ -59,7 +59,7 @@ class StatsController extends Controller
         // ant
         'smoking' => 'ant',
         'snuffing' => 'ant',
-        'alcohol' => 'ant',
+        'alcoholDrink' => 'ant',
         // energy
         'foodHabits' => 'energy',
         'foodEnergyBalance' => 'energy',
@@ -955,7 +955,7 @@ class StatsController extends Controller
         } elseif ($sex == 2) {
             $profilesQuery = $profilesQuery->where('users.sex', 'F');
         } else {
-           // $profilesQuery = $profilesQuery->where('users.sex', '!=', 'U');
+         //   $profilesQuery = $profilesQuery->where('users.sex', '!=', 'U');
         }
 
         if ($flags & FilterFlags::DateFrom || $flags & FilterFlags::DateTo) {
@@ -1046,7 +1046,6 @@ class StatsController extends Controller
 
         if ($flags & FilterFlags::RiskGroups) {
             $riskGroups = explode('|', $filters['risk-groups']);
-
             $profilesQuery = $profilesQuery->whereIn('risk_group', $riskGroups);
 
             //$profilesQuery = $profilesQuery->whereRaw('profiles.id IN (SELECT MAX(profiles.id) as id from profiles group by profiles.user_id)');
@@ -1067,8 +1066,7 @@ class StatsController extends Controller
 
         $profilesQueryResults = $profilesQuery->get();
 
-        Log::info("Total Profiles: ".count($profilesQueryResults));
-        $checkProfileType = false;
+         $checkProfileType = false;
         if ($flags & FilterFlags::ProfileType) {
             $checkProfileType = true;
             $helped = $filters['got-help'];
@@ -1093,6 +1091,7 @@ class StatsController extends Controller
         ];
 
         foreach ($profilesQueryResults as $profile) {
+
             if ($checkProfileType) {
                 $gotHelp = $profile->got_help;
                 $inGroup = $profile->in_group;
@@ -1171,7 +1170,9 @@ class StatsController extends Controller
             return [];
         }
 
+
         if ($flags & FilterFlags::CrossReference) {
+
             $factorLookup = $this->getFactors();
             $factorsQuery = DB::table('profile_factors')
                 ->select('profile_factors.*', 'users.sex')
@@ -1323,10 +1324,11 @@ class StatsController extends Controller
 
         //$pages = array_reverse($pages);
 
-        Log::info("Total fILTERED Cat: ".count($filteredCategories));
-        $barLabels = [];
+         $barLabels = [];
         $barLabelsExt = [];
         $mappedLabels = [];
+        Log::info("================ CATEGORIES ============");
+        Log::info(json_encode($filteredCategories));
         // return $categoryNames;
         foreach ($filteredCategories as $category) {
             $label = t($category->label);
@@ -1347,8 +1349,10 @@ class StatsController extends Controller
         $values = [];
         $valuesStacked = [];
         $valuesStackedExt = [];
-
+        Log::info("================ Labels ============");
+        Log::info(json_encode($mappedLabels));
         $stack = [];
+
 
         $factorQuery = DB::table('profile_factors')
             ->join('questionnaire_categories', 'profile_factors.category_id', '=', 'questionnaire_categories.id')
@@ -1370,7 +1374,12 @@ class StatsController extends Controller
 
         $facts = [];
         $fq= $factorQuery->get();
-        Log::info("Factor Query Result: ".count($fq));
+        Log::info("================ Category Ids ============");
+        Log::info(json_encode($categoryIds));
+        Log::info("================ Profile Ids ============");
+        Log::info(json_encode($profileIds));
+        Log::info("================ Factors Query Result ============");
+        Log::info(json_encode($fq));
          // $profileSQLQuery = query_to_string($factorQuery);
 
         foreach ($factorQuery->get() as $result) {
@@ -1385,6 +1394,8 @@ class StatsController extends Controller
             //$facts[$factorName] = array(intval($healthy), intval($result->danger), intval($risk), intval($result->unknown));
         }
 
+        Log::info("----------- STACK -------- ");
+        Log::info(json_encode($stack));
         // Hämta alla skolfaktorer
         foreach ($categoryNames as $id => $name) {
             $stack[$name] = [0, 0];
@@ -1392,6 +1403,9 @@ class StatsController extends Controller
 
         $mappedValues = [];
         foreach ($stack as $key => $value) {
+
+
+
             if (isset($this->categoryPageMap[$key])) {
                 $page = $this->categoryPageMap[$key];
                 if (! isset($mappedValues[$page])) {

@@ -21,6 +21,7 @@ use App\Services\QuestionsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ProfilesController extends Controller
@@ -107,17 +108,25 @@ class ProfilesController extends Controller
             }
         }
 
+        Log::info("Category==== : ".$category_id);
         if (! $category_id) {
             $data['error'] = 'missing category';
 
             return $data;
         }
 
+        Log::info(json_encode($profile));
         $factor = $profile->factors()->where('category_id', $category_id)->first();
         if (! $factor) {
-            $data['error'] = 'missing factor';
+            $factor = new ProfileFactor;
 
-            return $data;
+            $factor->profile_id = $profile->id;
+            $factor->category_id =$category_id;
+
+            $factor->save();
+          //  $data['error'] = 'missing factor';
+
+           // return $data;
         }
 
         $data['factor'] = $factor;

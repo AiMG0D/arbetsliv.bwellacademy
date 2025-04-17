@@ -43,6 +43,7 @@ class ProfileFactor extends Model
             'factors.freetime',
             'factors.media',
             'factors.kasam',
+            'factors.alcoholDrink',
         ];
     }
 
@@ -103,6 +104,7 @@ class ProfileFactor extends Model
                 'smoking',
                 'snuffing',
                 'alcohol',
+                'alcoholDrink',
                 'foodHabits',
                 'foodContents',
                 'foodAmount',
@@ -162,6 +164,7 @@ class ProfileFactor extends Model
                 'smoking',
                 'snuffing',
                 'alcohol',
+                'alcoholDrink',
                 'foodHabits',
                 'foodContents',
                 'foodAmount',
