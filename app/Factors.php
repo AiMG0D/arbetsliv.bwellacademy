@@ -40,7 +40,7 @@ enum Factors: int
     case PhysicalActivity = 97;
 
     case Performance = 100;
-
+    case physicalCondition = 99;
     case Wellbeing = 102;
 
     case Safety = 103;

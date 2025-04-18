@@ -25,6 +25,7 @@ class StudentProfileType extends ProfileType
         $this->calcIFIS();
         $this->calcTraining();
         $this->calcActivities();
+        $this->calcPhysicalCondition();
         $this->calcSitting();
         $this->calcNewPhysicalQuestions();
 
@@ -930,6 +931,11 @@ class StudentProfileType extends ProfileType
         }
     }
 
+    private function calcPhysicalCondition()
+    {
+        $this->singleValue('physicalCondition', 'physicalCondition');
+    }
+
     private function calcSitting()
     {
         $this->singleValue('sitting', 'sitting');
@@ -941,6 +947,7 @@ class StudentProfileType extends ProfileType
             'energy',
             'training',
             'sitting',
+            'physicalCondition',
         ]);
     }
 
@@ -1041,7 +1048,7 @@ class StudentProfileType extends ProfileType
 
                 $units = 0;
 
-                $valueNames = array_map(fn ($i) => 'alcoholDrink' . $i, range(1, 7));
+                $valueNames = array_map(fn($i) => 'alcoholDrink' . $i, range(1, 7));
                 foreach ($valueNames as $idx => $name) {
                     $units += ($this->getValue($name) ?? 0) * $ratioMap[$idx];
                 }
@@ -1107,6 +1114,26 @@ class StudentProfileType extends ProfileType
             $bmr -= 161.0;
         }
         $this->setValue('foodBMR', $bmr);
+
+        $minCondition = $this->getValue('Min kondition');
+        if (empty($minCondition)) {
+            return;
+        }
+
+        $minCondition = intval($minCondition);
+
+        if ($minCondition == 5) {
+            $pal = 2.55;
+        } elseif ($minCondition == 4) {
+            $pal = 2.2;
+        } elseif ($minCondition == 3) {
+            $pal = 1.85;
+        } elseif ($minCondition == 2) {
+            $pal = 1.55;
+        } else {
+            $pal = 1.25;
+        }
+
 
         $training = $this->getValue('training');
         if (empty($training)) {
@@ -1270,7 +1297,7 @@ class StudentProfileType extends ProfileType
 
     private function calcSchool()
     {
-        $valueNames = array_map(fn ($i) => 'school' . $i, range(1, 11));
+        $valueNames = array_map(fn($i) => 'school' . $i, range(1, 11));
         foreach ($valueNames as $name) {
             $this->singleValue($name, $name);
         }
@@ -1280,7 +1307,7 @@ class StudentProfileType extends ProfileType
 
     private function calcWork()
     {
-        $valueNames = array_map(fn ($i) => 'work' . $i, range(1, 16));
+        $valueNames = array_map(fn($i) => 'work' . $i, range(1, 16));
         foreach ($valueNames as $name) {
             $this->singleValue($name, $name);
         }
