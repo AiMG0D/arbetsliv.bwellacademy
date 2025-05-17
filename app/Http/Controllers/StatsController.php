@@ -36,7 +36,7 @@ class StatsController extends Controller
         'strBack' => 'physical',
         'strArms' => 'physical',
         'strAbs' => 'physical',
-       // 'balance' => 'physical',
+       'balance' => 'physical',
       //  'motor' => 'physical',
         'posture' => 'physical',
       //  'fitness' => 'physical',
