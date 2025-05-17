@@ -392,8 +392,20 @@ Välkommen {{ $user->full_name() }}
                 createStackedColumnChart('freetimeChart', response.mappedLabels.freetime ?? {}, response.mappedValues.freetime ?? {});
                 createStackedColumnChart('workChart', response.mappedLabels.work ?? {}, response.mappedValues.work ?? {});
 
-                console.log("Kasam", response.mappedValues.kasam)
-                createColumnChart('kasamChart', response.mappedLabels.kasam ?? {}, response.mappedValues.kasam ?? {});
+                const vals = response.mappedValues.kasam; // [4, 1, 0]
+
+                // 2) Swap index 0 and index 1
+                [vals.kasam[0], vals.kasam[1]] = [vals.kasam[1], vals.kasam[0]];
+
+                // 3) Now vals is [1, 4, 0]
+                console.log("Kasam", vals);
+
+                // 4) Draw your chart
+                createColumnChart(
+                    'kasamChart',
+                    response.mappedLabels.kasam, // labels stay in whatever order you’ve set up
+                    vals
+                );
                 // createChart('physicalChart',  response.mappedLabels.physical ?? {},  response.mappedValues.physical ?? {});
                 //createChart('wellbeingChart',  response.mappedLabels.wellbeing ?? {}, response.mappedValues.wellbeing ?? {});
                 // createChart('antChart',  response.mappedLabels.ant ?? {}, response.mappedValues.ant ?? {});
