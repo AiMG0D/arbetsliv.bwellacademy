@@ -407,7 +407,7 @@ Välkommen {{ $user->full_name() }}
 
 
 
-        $.ajax("/statistics/feedback", {
+        $.ajax("/statistics/chart", {
             dataType: "json",
             method: "get",
             data: {
