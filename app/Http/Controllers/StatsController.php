@@ -30,19 +30,19 @@ class StatsController extends Controller
 
     private $categoryPageMap = [
         // physical
-       // 'agility' => 'physical',
+        // 'agility' => 'physical',
         'strength2' => 'physical',
         'strLegs' => 'physical',
         'strBack' => 'physical',
         'strArms' => 'physical',
         'strAbs' => 'physical',
-       'balance' => 'physical',
-      //  'motor' => 'physical',
+        'balance' => 'physical',
+        //  'motor' => 'physical',
         'posture' => 'physical',
-      //  'fitness' => 'physical',
-       // 'stepcount' => 'physical',
-      //  'weight' => 'physical',
-       // 'physical' => 'physical',
+        //  'fitness' => 'physical',
+        // 'stepcount' => 'physical',
+        //  'weight' => 'physical',
+        // 'physical' => 'physical',
         'physicalTraining' => 'physical',
         'physicalCondition' => 'physical',
         'activitiesTimeSpent' => 'physical',
@@ -63,10 +63,10 @@ class StatsController extends Controller
         // energy
         'foodHabits' => 'energy',
         'foodEnergyBalance' => 'energy',
-      //  'foodFruit' => 'energy',
+        //  'foodFruit' => 'energy',
         'foodSweets' => 'energy',
-      //  'foodFluid' => 'energy',
-      //  'foodEnergyDrinks' => 'energy',
+        //  'foodFluid' => 'energy',
+        //  'foodEnergyDrinks' => 'energy',
         // freetime
         'freetime' => 'freetime',
         'media' => 'freetime',
@@ -384,7 +384,7 @@ class StatsController extends Controller
         }
 
         $filter = StatsFilter::where('user_id', $user->id)
-                    ->where('slug', $name)->first();
+            ->where('slug', $name)->first();
 
         if (is_null($filter)) {
             return '[]';
@@ -496,7 +496,81 @@ class StatsController extends Controller
         return ['status' => 'ok', 'data' => $values];
     }
 
+    public function ajaxGetChart(Request $request)
+    {
+        $user = Auth::user();
 
+        if (is_null($user)) {
+            abort(404);
+        }
+
+        if ($user->isStudent()) {
+            abort(404);
+        }
+
+        $sectionFilter = $request->input('section');
+        $genderFilter = $request->input('sex');
+
+        // Get feedback questions
+        $questions = DB::table('feedback_questions')
+            ->select('id', 'name', 'text')
+            ->orderBy('id')
+            ->get();
+
+        // Base query for overall counts
+        $query = DB::table('feedback_answers as fa')
+            ->join('profiles as p', 'fa.profile_id', '=', 'p.id')
+            ->join('users as u', 'p.user_id', '=', 'u.id')
+            ->join('sections as s', 'u.section_id', '=', 's.id')
+            ->join('unit as un', 's.unit_id', '=', 'un.id')
+            ->where('un.included', 1); // Include only active units
+
+        // Apply section filter if provided
+        if ($sectionFilter) {
+            list($unitId, $sectionId) = explode('.', $sectionFilter);
+            $query->where('s.id', $sectionId)
+                ->where('un.id', $unitId);
+        }
+
+        // Apply gender filter if provided
+        if ($genderFilter) {
+            $query->where('u.gender', $genderFilter);
+        }
+
+        // Get overall counts for each feedback value
+        $counts = $query->select(
+            DB::raw('SUM(CASE WHEN fa.value = 1 THEN 1 ELSE 0 END) as count_one'),
+            DB::raw('SUM(CASE WHEN fa.value = 0 THEN 1 ELSE 0 END) as count_zero'),
+            DB::raw('SUM(CASE WHEN fa.value = -1 THEN 1 ELSE 0 END) as count_negative_one')
+        )->first();
+
+        // Get response counts per question
+        $questionResponses = [];
+        foreach ($questions as $question) {
+            $questionQuery = clone $query;
+            $questionCounts = $questionQuery->where('fa.name', $question->name) // Using name instead of question_id
+                ->select(
+                    DB::raw('SUM(CASE WHEN fa.value = 1 THEN 1 ELSE 0 END) as count_one'),
+                    DB::raw('SUM(CASE WHEN fa.value = 0 THEN 1 ELSE 0 END) as count_zero'),
+                    DB::raw('SUM(CASE WHEN fa.value = -1 THEN 1 ELSE 0 END) as count_negative_one')
+                )->first();
+
+            $questionResponses[$question->name] = [
+                'text' => $question->text,
+                'count_one' => (int)($questionCounts->count_one ?? 0),
+                'count_zero' => (int)($questionCounts->count_zero ?? 0),
+                'count_negative_one' => (int)($questionCounts->count_negative_one ?? 0)
+            ];
+        }
+
+        // Convert to integers and default to 0 for nulls
+        return response()->json([
+            'count_one' => (int)($counts->count_one ?? 0),
+            'count_zero' => (int)($counts->count_zero ?? 0),
+            'count_negative_one' => (int)($counts->count_negative_one ?? 0),
+            'questions' => $questionResponses
+        ]);
+    }
     public function getFilteredSelection($filters)
     {
         $user = Auth::user();
@@ -670,8 +744,7 @@ class StatsController extends Controller
 
                 $sections[] = $sectionEntry['section'];
             }
-        }
-        elseif ($flags & FilterFlags::Country) {
+        } elseif ($flags & FilterFlags::Country) {
             $countriesWithSections = get_all_country_sections();
             $country = intval($filters['country']);
             if ($country > 0) {
@@ -753,8 +826,7 @@ class StatsController extends Controller
             $showSelectionLink = true;
             $sampleId = intval($filters['sample-group']);
             $sampleMembers = SampleGroupMember::where('sample_group_id', $sampleId)->get();
-        }
-        else {
+        } else {
             if ($user->isSuperAdmin()) {
                 if ($flags & FilterFlags::SectionOrUnit) {
                     Log::info("Sections Filter ");
@@ -774,7 +846,7 @@ class StatsController extends Controller
                         $unitsAndSections[$unitId][] = $sectionId;
                     }
 
-                     $sections = Section::where(function ($query) use ($unitsAndSections) {
+                    $sections = Section::where(function ($query) use ($unitsAndSections) {
                         foreach ($unitsAndSections as $unitId => $unitSections) {
                             $query->orWhere(function ($query1) use ($unitId, $unitSections) {
                                 if (in_array(0, $unitSections)) {
@@ -783,16 +855,15 @@ class StatsController extends Controller
                                 } else {
                                     $sectionIds = [];
                                     foreach ($unitSections as $sectionId) {
-                                        $sectionIds[] =(int) $sectionId;
+                                        $sectionIds[] = (int) $sectionId;
                                     }
 
-                                     $query1->where('unit_id', $unitId)->whereIn('id', $sectionIds);
+                                    $query1->where('unit_id', $unitId)->whereIn('id', $sectionIds);
                                 }
                             });
                         }
                     })->get();
-                }
-                else {
+                } else {
                     $allSectionsQuery = DB::table('sections')
                         ->select('sections.*')
                         ->join('unit', 'unit.id', '=', 'sections.unit_id')
@@ -813,8 +884,7 @@ class StatsController extends Controller
                         $sections[] = $result;
                     }
                 }
-            }
-            else {
+            } else {
                 $showSelectionLink = true;
                 $unitId = $user->unit_id;
                 $unit = $user->unit;
@@ -916,7 +986,8 @@ class StatsController extends Controller
         }
 
         if ((isset($sectionIds) && count($sectionIds) == 0) ||
-            (isset($sampleMemberIds) && count($sampleMemberIds) == 0)) {
+            (isset($sampleMemberIds) && count($sampleMemberIds) == 0)
+        ) {
             return [];
         }
 
@@ -955,7 +1026,7 @@ class StatsController extends Controller
         } elseif ($sex == 2) {
             $profilesQuery = $profilesQuery->where('users.sex', 'F');
         } else {
-         //   $profilesQuery = $profilesQuery->where('users.sex', '!=', 'U');
+            //   $profilesQuery = $profilesQuery->where('users.sex', '!=', 'U');
         }
 
         if ($flags & FilterFlags::DateFrom || $flags & FilterFlags::DateTo) {
@@ -973,11 +1044,15 @@ class StatsController extends Controller
             $profilesQuery = $profilesQuery->whereBetween('profiles.date', [$dateFrom, $dateTo]);
         }
 
-        if ($flags & FilterFlags::SemesterFrom ||
-            $flags & FilterFlags::SemesterTo) {
+        if (
+            $flags & FilterFlags::SemesterFrom ||
+            $flags & FilterFlags::SemesterTo
+        ) {
             // TODO: SemesterFrom & SemesterTo
-            if ($flags & FilterFlags::SemesterFrom &&
-                $flags & FilterFlags::SemesterTo) {
+            if (
+                $flags & FilterFlags::SemesterFrom &&
+                $flags & FilterFlags::SemesterTo
+            ) {
                 $semesterFrom = intval($filters['semester-from']);
                 $yearFrom = intval($filters['year-from']);
 
@@ -998,8 +1073,10 @@ class StatsController extends Controller
             }
 
             $profilesQuery = $profilesQuery->whereBetween('profiles.date', $semesterRange);
-        } elseif ($flags & FilterFlags::YearFrom ||
-                 $flags & FilterFlags::YearTo) {
+        } elseif (
+            $flags & FilterFlags::YearFrom ||
+            $flags & FilterFlags::YearTo
+        ) {
             // År
             if ($flags & FilterFlags::YearFrom) {
                 $yearFrom = $filters['year-from'] . '-01-01';
@@ -1023,8 +1100,10 @@ class StatsController extends Controller
             }
         }
 
-        if ($flags & FilterFlags::AgeFrom ||
-            $flags & FilterFlags::AgeTo) {
+        if (
+            $flags & FilterFlags::AgeFrom ||
+            $flags & FilterFlags::AgeTo
+        ) {
             // $profile->updated_at, $student->birth_date
             if ($flags & FilterFlags::AgeFrom) {
                 $ageFrom = intval($filters['age-from']);
@@ -1034,8 +1113,10 @@ class StatsController extends Controller
                 $ageTo = intval($filters['age-to']);
             }
 
-            if ($flags & FilterFlags::AgeFrom &&
-                $flags & FilterFlags::AgeTo) {
+            if (
+                $flags & FilterFlags::AgeFrom &&
+                $flags & FilterFlags::AgeTo
+            ) {
                 $profilesQuery = $profilesQuery->whereBetween(DB::raw('timestampdiff(YEAR, `users`.`birth_date`, `profiles`.`date`)'), [$ageFrom, $ageTo]);
             } elseif ($flags & FilterFlags::AgeFrom) {
                 $profilesQuery = $profilesQuery->where(DB::raw('timestampdiff(YEAR, `users`.`birth_date`, `profiles`.`date`)'), '>=', $ageFrom);
@@ -1066,7 +1147,7 @@ class StatsController extends Controller
 
         $profilesQueryResults = $profilesQuery->get();
 
-         $checkProfileType = false;
+        $checkProfileType = false;
         if ($flags & FilterFlags::ProfileType) {
             $checkProfileType = true;
             $helped = $filters['got-help'];
@@ -1204,14 +1285,14 @@ class StatsController extends Controller
                     foreach ($numericConstraints as $factor => $values) {
                         $query->where(function ($subquery) use ($factor, $values, $factorLookup) {
                             $subquery->where('profile_factors.category_id', $factorLookup[$factor])
-                                 ->whereIn('profile_factors.value', $values);
+                                ->whereIn('profile_factors.value', $values);
                         });
                     }
 
                     foreach ($statusConstraints as $factor => $values) {
                         $query->where(function ($subquery) use ($factor, $values, $factorLookup) {
                             $subquery->where('profile_factors.category_id', $factorLookup[$factor])
-                                 ->whereIn('profile_factors.status', $values);
+                                ->whereIn('profile_factors.status', $values);
                         });
                     }
                 });
@@ -1324,7 +1405,7 @@ class StatsController extends Controller
 
         //$pages = array_reverse($pages);
 
-         $barLabels = [];
+        $barLabels = [];
         $barLabelsExt = [];
         $mappedLabels = [];
         Log::info("================ CATEGORIES ============");
@@ -1373,14 +1454,14 @@ class StatsController extends Controller
             );
 
         $facts = [];
-        $fq= $factorQuery->get();
+        $fq = $factorQuery->get();
         Log::info("================ Category Ids ============");
         Log::info(json_encode($categoryIds));
         Log::info("================ Profile Ids ============");
         Log::info(json_encode($profileIds));
         Log::info("================ Factors Query Result ============");
         Log::info(json_encode($fq));
-         // $profileSQLQuery = query_to_string($factorQuery);
+        // $profileSQLQuery = query_to_string($factorQuery);
 
         foreach ($factorQuery->get() as $result) {
             $factorId = $result->category_id;
@@ -1417,8 +1498,10 @@ class StatsController extends Controller
             $valuesStacked[] = $value;
             $valuesStackedExt[$key] = $value;
 
-            if ($flags & FilterFlags::FilterCategories &&
-                (isset($wantedCategories) && in_array($key, $wantedCategories))) {
+            if (
+                $flags & FilterFlags::FilterCategories &&
+                (isset($wantedCategories) && in_array($key, $wantedCategories))
+            ) {
                 $filteredValuesStacked[] = $value;
             }
         }
@@ -1527,7 +1610,8 @@ class StatsController extends Controller
         return $profile;
     }
 
-    public function ajaxGetFeedback(Request $request) {
+    public function ajaxGetFeedback(Request $request)
+    {
 
         $user = Auth::user();
 
@@ -1567,7 +1651,6 @@ class StatsController extends Controller
             'count_one' => $countOne,
             'count_negative_one' => $countNegativeOne,
         ]);
-
     }
 }
 

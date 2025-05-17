@@ -1334,35 +1334,40 @@ class StudentProfileType extends ProfileType
 
     private function calcSOC()
     {
+        // Collect all 13 kasam values
+        $kasamValues = [];
+        $validValues = true;
+
+        // Get individual values and validate them
         for ($i = 1; $i <= 13; ++$i) {
             $value = $this->getValue('kasam' . $i);
-            if (is_null($value) || $value < 1) {
-                $this->setFactor('kasam', null, 'profile.unknown');
 
+            // Check if value is valid (not null and >= 1)
+            if (is_null($value) || $value < 1 || $value > 7) {
+                $this->setFactor('kasam', null, 'profile.unknown');
                 return;
             }
+
+            $kasamValues[] = $value;
         }
 
-        $sum = 8 - $this->getValue('kasam1');
-        $sum += 8 - $this->getValue('kasam2');
-        $sum += 8 - $this->getValue('kasam3');
-        $sum += $this->getValue('kasam4');
-        $sum += $this->getValue('kasam5');
-        $sum += $this->getValue('kasam6');
-        $sum += 8 - $this->getValue('kasam7');
-        $sum += $this->getValue('kasam8');
-        $sum += $this->getValue('kasam9');
-        $sum += 8 - $this->getValue('kasam10');
-        $sum += $this->getValue('kasam11');
-        $sum += $this->getValue('kasam12');
-        $sum += $this->getValue('kasam13');
+        // Calculate the sum
+        $sum = array_sum($kasamValues);
 
-        $value = $this->normalizeSOC($sum);
+        // Calculate the average
+        $average = $sum / 13;
 
-        if ($value < 3) {
-            $this->setFactor('kasam', $value, 'profile.risk');
+        // Transform from 1-7 scale to 1-5 scale
+        $transformedValue = ((($average - 1) / (7 - 1)) * (5 - 1)) + 1;
+
+        // Round to make it cleaner
+        $transformedValue = round($transformedValue);
+
+        // Set factor based on threshold
+        if ($transformedValue < 3) {
+            $this->setFactor('kasam', $transformedValue, 'profile.risk');
         } else {
-            $this->setFactor('kasam', $value, 'profile.healthy');
+            $this->setFactor('kasam', $transformedValue, 'profile.healthy');
         }
     }
 

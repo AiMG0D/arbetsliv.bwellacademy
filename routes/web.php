@@ -215,6 +215,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('compare', 'StatsController@ajaxCompare');
         Route::get('selection/{cacheId}', 'StatsController@getSelection');
         Route::get('feedback', 'StatsController@ajaxGetFeedback');
+        Route::get('chart', 'StatsController@ajaxGetChart');
     });
 });
 

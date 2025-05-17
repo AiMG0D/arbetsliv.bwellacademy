@@ -204,6 +204,7 @@ Välkommen {{ $user->full_name() }}
             flex: 1 1 100%;
         }
     }
+
     .checkbox-container {
         display: flex;
         gap: 15px;
@@ -223,7 +224,6 @@ Välkommen {{ $user->full_name() }}
         width: 18px;
         height: 18px;
     }
-
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -233,6 +233,7 @@ Välkommen {{ $user->full_name() }}
     let chartInstances = [];
     let gender = null
     let sectionId = null
+
     function fetchDataAndRenderCharts() {
 
         chartInstances.forEach(chart => chart.destroy());
@@ -384,22 +385,22 @@ Välkommen {{ $user->full_name() }}
                 chartInstances.push(barChart);
 
 
-                createStackedColumnChart('physicalStackedChart',  response.mappedLabels.physical ?? {},  response.mappedValues.physical ?? {});
-                createStackedColumnChart('wellbeingChart',  response.mappedLabels.wellbeing ?? {},  response.mappedValues.wellbeing ?? {});
-                createStackedColumnChart('antChart',  response.mappedLabels.ant ?? {},  response.mappedValues.ant ?? {});
-                createStackedColumnChart('energyChart',  response.mappedLabels.energy ?? {},  response.mappedValues.energy ?? {});
-                createStackedColumnChart('freetimeChart',  response.mappedLabels.freetime ?? {},  response.mappedValues.freetime ?? {});
-                createStackedColumnChart('workChart',  response.mappedLabels.work ?? {},  response.mappedValues.work ?? {});
+                createStackedColumnChart('physicalStackedChart', response.mappedLabels.physical ?? {}, response.mappedValues.physical ?? {});
+                createStackedColumnChart('wellbeingChart', response.mappedLabels.wellbeing ?? {}, response.mappedValues.wellbeing ?? {});
+                createStackedColumnChart('antChart', response.mappedLabels.ant ?? {}, response.mappedValues.ant ?? {});
+                createStackedColumnChart('energyChart', response.mappedLabels.energy ?? {}, response.mappedValues.energy ?? {});
+                createStackedColumnChart('freetimeChart', response.mappedLabels.freetime ?? {}, response.mappedValues.freetime ?? {});
+                createStackedColumnChart('workChart', response.mappedLabels.work ?? {}, response.mappedValues.work ?? {});
 
-                console.log("Kasam",response.mappedValues.kasam)
-                createColumnChart('kasamChart',  response.mappedLabels.kasam ?? {},  response.mappedValues.kasam ?? {});
-               // createChart('physicalChart',  response.mappedLabels.physical ?? {},  response.mappedValues.physical ?? {});
+                console.log("Kasam", response.mappedValues.kasam)
+                createColumnChart('kasamChart', response.mappedLabels.kasam ?? {}, response.mappedValues.kasam ?? {});
+                // createChart('physicalChart',  response.mappedLabels.physical ?? {},  response.mappedValues.physical ?? {});
                 //createChart('wellbeingChart',  response.mappedLabels.wellbeing ?? {}, response.mappedValues.wellbeing ?? {});
-               // createChart('antChart',  response.mappedLabels.ant ?? {}, response.mappedValues.ant ?? {});
-               // createChart('energyChart', response.mappedLabels.energy ?? {}, response.mappedValues.energy ?? {});
-              //  createChart('freetimeChart', response.mappedLabels.freetime ?? {}, response.mappedValues.freetime ?? {});
-              //  createChart('workChart', response.mappedLabels.work ?? {}, response.mappedValues.work ?? {});
-              //  createChart('kasamChart', response.mappedLabels.kasam ?? {}, response.mappedValues.kasam ?? {});
+                // createChart('antChart',  response.mappedLabels.ant ?? {}, response.mappedValues.ant ?? {});
+                // createChart('energyChart', response.mappedLabels.energy ?? {}, response.mappedValues.energy ?? {});
+                //  createChart('freetimeChart', response.mappedLabels.freetime ?? {}, response.mappedValues.freetime ?? {});
+                //  createChart('workChart', response.mappedLabels.work ?? {}, response.mappedValues.work ?? {});
+                //  createChart('kasamChart', response.mappedLabels.kasam ?? {}, response.mappedValues.kasam ?? {});
 
             }
         });
@@ -430,7 +431,7 @@ Välkommen {{ $user->full_name() }}
                 };
 
                 // Create the chart using the function
-                createFeedbackChart( response);
+                createFeedbackChart(response);
             }
         });
 
@@ -441,7 +442,7 @@ Välkommen {{ $user->full_name() }}
                 const key = Object.keys(labelMapping).find(k => labelMapping[k] === label);
                 return valueMapping[key] || [0, 0, 0]; // Default to [0, 0, 0] if no value is found
             });
-            const colors = [ '#00FF00','#FF0000', '#0000FF']; // Red, Green, Blue
+            const colors = ['#00FF00', '#FF0000', '#0000FF']; // Red, Green, Blue
             // Prepare dataset for ApexCharts
             const series = [
 
@@ -500,7 +501,7 @@ Välkommen {{ $user->full_name() }}
                 xaxis: {
                     categories: labels, // Use dynamic labels
                     labels: {
-                        formatter: function (value) {
+                        formatter: function(value) {
                             return value; // Display the label as is
                         }
                     }
@@ -518,6 +519,7 @@ Välkommen {{ $user->full_name() }}
             const chart = new ApexCharts(document.querySelector(`#${chartId}`), options);
             chart.render();
         }
+
         function createColumnChart(chartId, labelMapping, valueMapping) {
             // Extract labels and corresponding values dynamically
             const labels = Object.values(labelMapping);
@@ -529,8 +531,7 @@ Välkommen {{ $user->full_name() }}
             const colors = ['#FF0000', '#00FF00']; // Red for Risk, Green for Frisk
 
             // Prepare dataset for ApexCharts
-            const series = [
-                {
+            const series = [{
                     name: 'Risk',
                     data: values.map(v => v[0]) // Risk values
                 },
@@ -577,7 +578,7 @@ Välkommen {{ $user->full_name() }}
                 },
                 dataLabels: {
                     enabled: true,
-                    formatter: function (val) {
+                    formatter: function(val) {
                         return val.toFixed(2); // Display formatted values
                     },
                     offsetY: -10,
@@ -610,15 +611,29 @@ Välkommen {{ $user->full_name() }}
         }
 
         function createFeedbackChart(response) {
-            console.log(response);
+            console.log('Feedback chart data:', response);
 
+            // First, create the main container with a header
+            const chartContainer = document.querySelector("#feedbackChart");
+            chartContainer.innerHTML = `
+        <div class="feedback-overall-chart" style="margin-bottom: 30px;">
+            <h4 style="margin-bottom: 15px; font-size: 16px; color: #666;">Sammanfattning av återkoppling</h4>
+            <div id="overallFeedbackChart"></div>
+        </div>
+        <div class="feedback-questions-container">
+            <h4 style="margin: 15px 0; font-size: 16px; color: #666;">Svar per fråga</h4>
+            <div id="questionsChartsContainer"></div>
+        </div>
+    `;
+
+            // Create the overall feedback chart
             const labels = ['Håller helt med', 'Håller delvis med', 'Håller inte med'];
             const values = [response.count_one, response.count_zero, response.count_negative_one];
 
             const options = {
                 chart: {
                     type: 'bar',
-                    height: 450
+                    height: 250
                 },
                 series: [{
                     name: 'Återkoppling',
@@ -627,7 +642,7 @@ Välkommen {{ $user->full_name() }}
                 xaxis: {
                     categories: labels
                 },
-                colors: ['#10B981','#3B82F6',  '#EF4444'], // Different colors for Agree, Neutral, Disagree
+                colors: ['#10B981', '#3B82F6', '#EF4444'], // Different colors for Agree, Neutral, Disagree
                 plotOptions: {
                     bar: {
                         horizontal: false,
@@ -641,8 +656,87 @@ Välkommen {{ $user->full_name() }}
                 }
             };
 
-            const chart = new ApexCharts(document.querySelector("#feedbackChart"), options);
-            chart.render();
+            const overallChart = new ApexCharts(document.querySelector("#overallFeedbackChart"), options);
+            overallChart.render();
+
+            // If we have question data, create a chart for each question
+            if (response.questions && Object.keys(response.questions).length > 0) {
+                const questionsContainer = document.querySelector("#questionsChartsContainer");
+
+                // Create a grid for question charts
+                const gridContainer = document.createElement('div');
+                gridContainer.style.display = 'grid';
+                gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, minmax(400px, 1fr))';
+                gridContainer.style.gap = '20px';
+                questionsContainer.appendChild(gridContainer);
+
+                // For each question, create a chart
+                Object.keys(response.questions).forEach((questionName, index) => {
+                    const question = response.questions[questionName];
+
+                    // Skip questions with no responses
+                    const totalResponses = question.count_one + question.count_zero + question.count_negative_one;
+                    if (totalResponses === 0) return;
+
+                    // Create chart container
+                    const questionChartContainer = document.createElement('div');
+                    questionChartContainer.className = 'question-chart-card';
+                    questionChartContainer.style.background = '#f9f9f9';
+                    questionChartContainer.style.borderRadius = '10px';
+                    questionChartContainer.style.padding = '15px';
+                    questionChartContainer.style.boxShadow = '0 2px 5px rgba(0,0,0,0.05)';
+
+                    // Add chart title (question text)
+                    const questionTitle = document.createElement('h5');
+                    questionTitle.textContent = question.text;
+                    questionTitle.style.fontSize = '14px';
+                    questionTitle.style.marginBottom = '15px';
+                    questionTitle.style.color = '#333';
+                    questionChartContainer.appendChild(questionTitle);
+
+                    // Create chart div
+                    const chartDiv = document.createElement('div');
+                    chartDiv.id = `question-chart-${index}`;
+                    questionChartContainer.appendChild(chartDiv);
+
+                    // Add to grid
+                    gridContainer.appendChild(questionChartContainer);
+
+                    // Create chart
+                    const questionValues = [question.count_one, question.count_zero, question.count_negative_one];
+                    const questionOptions = {
+                        chart: {
+                            type: 'bar',
+                            height: 200
+                        },
+                        series: [{
+                            name: 'Svar',
+                            data: questionValues
+                        }],
+                        xaxis: {
+                            categories: labels
+                        },
+                        colors: ['#10B981', '#3B82F6', '#EF4444'],
+                        plotOptions: {
+                            bar: {
+                                horizontal: false,
+                                columnWidth: '50%',
+                                distributed: true,
+                                borderRadius: 8
+                            }
+                        },
+                        dataLabels: {
+                            enabled: true
+                        },
+                        legend: {
+                            show: false
+                        }
+                    };
+
+                    const questionChart = new ApexCharts(document.querySelector(`#question-chart-${index}`), questionOptions);
+                    questionChart.render();
+                });
+            }
         }
 
         // Function to create a chart
@@ -653,7 +747,7 @@ Välkommen {{ $user->full_name() }}
                 const key = Object.keys(labelMapping).find(k => labelMapping[k] === label);
                 return valueMapping[key] || [0, 0, 0]; // Default to [0, 0, 0] if no value is found
             });
-// Calculate the maximum value in the dataset
+            // Calculate the maximum value in the dataset
             const maxValue = Math.max(...values.flat());
 
             // Add a margin to the maximum value (e.g., 20% of the max value)
