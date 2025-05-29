@@ -658,16 +658,13 @@ Välkommen {{ $user->full_name() }}
                 plotOptions: {
                     bar: {
                         horizontal: false,
-                        columnWidth: '50%',
-                        distributed: true,
+                        columnWidth: '50%', // Adjust bar width
+                        distributed: true, // Ensures each bar gets its own color
                         borderRadius: 10
                     }
                 },
                 dataLabels: {
                     enabled: true
-                },
-                legend: {
-                    show: false // Hide legend since we're using distributed colors
                 }
             };
 
@@ -683,23 +680,15 @@ Välkommen {{ $user->full_name() }}
                 gridContainer.style.display = 'grid';
                 gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, minmax(400px, 1fr))';
                 gridContainer.style.gap = '20px';
-                gridContainer.style.marginTop = '20px';
                 questionsContainer.appendChild(gridContainer);
 
-                // Filter out questions with no responses and create charts
-                const validQuestions = Object.keys(response.questions).filter(questionName => {
+                // For each question, create a chart
+                Object.keys(response.questions).forEach((questionName, index) => {
                     const question = response.questions[questionName];
+
+                    // Skip questions with no responses
                     const totalResponses = question.count_one + question.count_zero + question.count_negative_one;
-                    return totalResponses > 0;
-                });
-
-                console.log(`Creating charts for ${validQuestions.length} valid questions:`, validQuestions);
-
-                // For each valid question, create a chart
-                validQuestions.forEach((questionName, index) => {
-                    const question = response.questions[questionName];
-
-                    console.log(`Creating chart for question ${index + 1}:`, questionName, question);
+                    if (totalResponses === 0) return;
 
                     // Create chart container
                     const questionChartContainer = document.createElement('div');
@@ -715,109 +704,50 @@ Välkommen {{ $user->full_name() }}
                     questionTitle.style.fontSize = '14px';
                     questionTitle.style.marginBottom = '15px';
                     questionTitle.style.color = '#333';
-                    questionTitle.style.lineHeight = '1.4';
                     questionChartContainer.appendChild(questionTitle);
 
-                    // Create chart div with unique ID
+                    // Create chart div
                     const chartDiv = document.createElement('div');
-                    const chartId = `question-chart-${questionName.replace(/[^a-zA-Z0-9]/g, '-')}-${index}`;
-                    chartDiv.id = chartId;
+                    chartDiv.id = `question-chart-${index}`;
                     questionChartContainer.appendChild(chartDiv);
 
                     // Add to grid
                     gridContainer.appendChild(questionChartContainer);
 
-                    // Create chart with a small delay to ensure DOM is ready
-                    setTimeout(() => {
-                        const chartElement = document.querySelector(`#${chartId}`);
-                        if (!chartElement) {
-                            console.error(`Chart element not found: ${chartId}`);
-                            return;
-                        }
-
-                        const questionValues = [question.count_one, question.count_zero, question.count_negative_one];
-                        const totalResponses = questionValues.reduce((a, b) => a + b, 0);
-
-                        const questionOptions = {
-                            chart: {
-                                type: 'bar',
-                                height: 200,
-                                toolbar: {
-                                    show: false
-                                }
-                            },
-                            series: [{
-                                name: 'Antal svar',
-                                data: questionValues
-                            }],
-                            xaxis: {
-                                categories: labels,
-                                labels: {
-                                    style: {
-                                        fontSize: '12px'
-                                    }
-                                }
-                            },
-                            yaxis: {
-                                labels: {
-                                    style: {
-                                        fontSize: '12px'
-                                    }
-                                }
-                            },
-                            colors: ['#10B981', '#3B82F6', '#EF4444'],
-                            plotOptions: {
-                                bar: {
-                                    horizontal: false,
-                                    columnWidth: '60%',
-                                    distributed: true,
-                                    borderRadius: 8
-                                }
-                            },
-                            dataLabels: {
-                                enabled: true,
-                                style: {
-                                    fontSize: '12px',
-                                    fontWeight: 'bold'
-                                }
-                            },
-                            legend: {
-                                show: false
-                            },
-                            tooltip: {
-                                y: {
-                                    formatter: function(val, opts) {
-                                        const percentage = ((val / totalResponses) * 100).toFixed(1);
-                                        return `${val} svar (${percentage}%)`;
-                                    }
-                                }
+                    // Create chart
+                    const questionValues = [question.count_one, question.count_zero, question.count_negative_one];
+                    const questionOptions = {
+                        chart: {
+                            type: 'bar',
+                            height: 200
+                        },
+                        series: [{
+                            name: 'Svar',
+                            data: questionValues
+                        }],
+                        xaxis: {
+                            categories: labels
+                        },
+                        colors: ['#10B981', '#3B82F6', '#EF4444'],
+                        plotOptions: {
+                            bar: {
+                                horizontal: false,
+                                columnWidth: '50%',
+                                distributed: true,
+                                borderRadius: 8
                             }
-                        };
-
-                        try {
-                            const questionChart = new ApexCharts(chartElement, questionOptions);
-                            questionChart.render();
-                            console.log(`Successfully rendered chart for: ${questionName}`);
-                        } catch (error) {
-                            console.error(`Error rendering chart for ${questionName}:`, error);
+                        },
+                        dataLabels: {
+                            enabled: true
+                        },
+                        legend: {
+                            show: false
                         }
-                    }, 100 * (index + 1)); // Stagger the chart creation
-                });
+                    };
 
-                // Add summary info
-                const summaryDiv = document.createElement('div');
-                summaryDiv.style.marginTop = '20px';
-                summaryDiv.style.padding = '15px';
-                summaryDiv.style.background = '#f0f0f0';
-                summaryDiv.style.borderRadius = '8px';
-                summaryDiv.innerHTML = `
-            <p style="margin: 0; font-size: 14px; color: #666;">
-                <strong>Sammanfattning:</strong> ${validQuestions.length} frågor visas med totalt ${response.count_one + response.count_zero + response.count_negative_one} svar
-            </p>
-        `;
-                questionsContainer.appendChild(summaryDiv);
-            } else {
-                console.warn('No questions data available or questions object is empty');
+                    const questionChart = new ApexCharts(document.querySelector(`#question-chart-${index}`), questionOptions);
+                    questionChart.render();
+                });
             }
         }
 
