@@ -621,13 +621,12 @@ Välkommen {{ $user->full_name() }}
             const chart = new ApexCharts(document.querySelector(`#${chartId}`), options);
             chart.render();
         }
+function createFeedbackChart(response) {
+    console.log('Feedback chart data:', response);
 
-             function createFeedbackChart(response) {
-            console.log('Feedback chart data:', response);
-
-            // First, create the main container with a header
-            const chartContainer = document.querySelector("#feedbackChart");
-            chartContainer.innerHTML = `
+    // First, create the main container with a header
+    const chartContainer = document.querySelector("#feedbackChart");
+    chartContainer.innerHTML = `
         <div class="feedback-overall-chart" style="margin-bottom: 30px;">
             <h4 style="margin-bottom: 15px; font-size: 16px; color: #666;">Sammanfattning av återkoppling</h4>
             <div id="overallFeedbackChart"></div>
@@ -638,121 +637,136 @@ Välkommen {{ $user->full_name() }}
         </div>
     `;
 
-            // Create the overall feedback chart
-            const labels = ['Håller helt med', 'Håller delvis med', 'Håller inte med'];
-            const values = [response.count_one, response.count_zero, response.count_negative_one];
+    // Create the overall feedback chart
+    const labels = ['Håller helt med', 'Håller delvis med', 'Håller inte med'];
+    const values = [response.count_one, response.count_zero, response.count_negative_one];
 
-            const options = {
+    const options = {
+        chart: {
+            type: 'bar',
+            height: 250
+        },
+        series: [{
+            name: 'Återkoppling',
+            data: values
+        }],
+        xaxis: {
+            categories: labels
+        },
+        colors: ['#10B981', '#3B82F6', '#EF4444'], // Different colors for Agree, Neutral, Disagree
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                columnWidth: '50%', // Adjust bar width
+                distributed: true, // Ensures each bar gets its own color
+                borderRadius: 10
+            }
+        },
+        dataLabels: {
+            enabled: true
+        }
+    };
+
+    const overallChart = new ApexCharts(document.querySelector("#overallFeedbackChart"), options);
+    overallChart.render();
+
+    // If we have question data, create a chart for each question
+    if (response.questions && Object.keys(response.questions).length > 0) {
+        const questionsContainer = document.querySelector("#questionsChartsContainer");
+
+        // Create a grid for question charts
+        const gridContainer = document.createElement('div');
+        gridContainer.style.display = 'grid';
+        gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, minmax(400px, 1fr))';
+        gridContainer.style.gap = '20px';
+        questionsContainer.appendChild(gridContainer);
+
+        // For each question, create a chart
+        Object.keys(response.questions).forEach((questionName, index) => {
+            const question = response.questions[questionName];
+
+            // REMOVED: Skip questions with no responses - now shows all questions
+            // const totalResponses = question.count_one + question.count_zero + question.count_negative_one;
+            // if (totalResponses === 0) return;
+
+            // Create chart container
+            const questionChartContainer = document.createElement('div');
+            questionChartContainer.className = 'question-chart-card';
+            questionChartContainer.style.background = '#f9f9f9';
+            questionChartContainer.style.borderRadius = '10px';
+            questionChartContainer.style.padding = '15px';
+            questionChartContainer.style.boxShadow = '0 2px 5px rgba(0,0,0,0.05)';
+
+            // Add chart title (question text)
+            const questionTitle = document.createElement('h5');
+            questionTitle.textContent = question.text;
+            questionTitle.style.fontSize = '14px';
+            questionTitle.style.marginBottom = '15px';
+            questionTitle.style.color = '#333';
+            questionChartContainer.appendChild(questionTitle);
+
+            // Create chart div
+            const chartDiv = document.createElement('div');
+            chartDiv.id = `question-chart-${index}`;
+            questionChartContainer.appendChild(chartDiv);
+
+            // Add to grid
+            gridContainer.appendChild(questionChartContainer);
+
+            // Create chart
+            const questionValues = [question.count_one, question.count_zero, question.count_negative_one];
+            
+            // Check if all values are zero and add a note
+            const totalResponses = question.count_one + question.count_zero + question.count_negative_one;
+            if (totalResponses === 0) {
+                const noDataNote = document.createElement('p');
+                noDataNote.textContent = 'Inga svar ännu';
+                noDataNote.style.textAlign = 'center';
+                noDataNote.style.color = '#666';
+                noDataNote.style.fontStyle = 'italic';
+                noDataNote.style.marginTop = '10px';
+                questionChartContainer.appendChild(noDataNote);
+            }
+
+            const questionOptions = {
                 chart: {
                     type: 'bar',
-                    height: 250
+                    height: 200
                 },
                 series: [{
-                    name: 'Återkoppling',
-                    data: values
+                    name: 'Svar',
+                    data: questionValues
                 }],
                 xaxis: {
                     categories: labels
                 },
-                colors: ['#10B981', '#3B82F6', '#EF4444'], // Different colors for Agree, Neutral, Disagree
+                colors: ['#10B981', '#3B82F6', '#EF4444'],
                 plotOptions: {
                     bar: {
                         horizontal: false,
-                        columnWidth: '50%', // Adjust bar width
-                        distributed: true, // Ensures each bar gets its own color
-                        borderRadius: 10
+                        columnWidth: '50%',
+                        distributed: true,
+                        borderRadius: 8
                     }
                 },
                 dataLabels: {
                     enabled: true
+                },
+                legend: {
+                    show: false
+                },
+                // Set a minimum height for the y-axis even when all values are 0
+                yaxis: {
+                    min: 0,
+                    max: totalResponses === 0 ? 10 : undefined
                 }
             };
 
-            const overallChart = new ApexCharts(document.querySelector("#overallFeedbackChart"), options);
-            overallChart.render();
-
-            // If we have question data, create a chart for each question
-            if (response.questions && Object.keys(response.questions).length > 0) {
-                const questionsContainer = document.querySelector("#questionsChartsContainer");
-
-                // Create a grid for question charts
-                const gridContainer = document.createElement('div');
-                gridContainer.style.display = 'grid';
-                gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, minmax(400px, 1fr))';
-                gridContainer.style.gap = '20px';
-                questionsContainer.appendChild(gridContainer);
-
-                // For each question, create a chart
-                Object.keys(response.questions).forEach((questionName, index) => {
-                    const question = response.questions[questionName];
-
-                    // Skip questions with no responses
-                    const totalResponses = question.count_one + question.count_zero + question.count_negative_one;
-                    if (totalResponses === 0) return;
-
-                    // Create chart container
-                    const questionChartContainer = document.createElement('div');
-                    questionChartContainer.className = 'question-chart-card';
-                    questionChartContainer.style.background = '#f9f9f9';
-                    questionChartContainer.style.borderRadius = '10px';
-                    questionChartContainer.style.padding = '15px';
-                    questionChartContainer.style.boxShadow = '0 2px 5px rgba(0,0,0,0.05)';
-
-                    // Add chart title (question text)
-                    const questionTitle = document.createElement('h5');
-                    questionTitle.textContent = question.text;
-                    questionTitle.style.fontSize = '14px';
-                    questionTitle.style.marginBottom = '15px';
-                    questionTitle.style.color = '#333';
-                    questionChartContainer.appendChild(questionTitle);
-
-                    // Create chart div
-                    const chartDiv = document.createElement('div');
-                    chartDiv.id = `question-chart-${index}`;
-                    questionChartContainer.appendChild(chartDiv);
-
-                    // Add to grid
-                    gridContainer.appendChild(questionChartContainer);
-
-                    // Create chart
-                    const questionValues = [question.count_one, question.count_zero, question.count_negative_one];
-                    const questionOptions = {
-                        chart: {
-                            type: 'bar',
-                            height: 200
-                        },
-                        series: [{
-                            name: 'Svar',
-                            data: questionValues
-                        }],
-                        xaxis: {
-                            categories: labels
-                        },
-                        colors: ['#10B981', '#3B82F6', '#EF4444'],
-                        plotOptions: {
-                            bar: {
-                                horizontal: false,
-                                columnWidth: '50%',
-                                distributed: true,
-                                borderRadius: 8
-                            }
-                        },
-                        dataLabels: {
-                            enabled: true
-                        },
-                        legend: {
-                            show: false
-                        }
-                    };
-
-                    const questionChart = new ApexCharts(document.querySelector(`#question-chart-${index}`), questionOptions);
-                    questionChart.render();
-                });
-            }
-        } 
-        
-        
-        
+            const questionChart = new ApexCharts(document.querySelector(`#question-chart-${index}`), questionOptions);
+            questionChart.render();
+        });
+    }
+}
         // Function to create a chart
         function createChart(chartId, labelMapping, valueMapping) {
             const ctx = document.getElementById(chartId).getContext('2d');
