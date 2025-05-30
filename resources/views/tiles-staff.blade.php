@@ -622,196 +622,270 @@ Välkommen {{ $user->full_name() }}
             chart.render();
         }
 
-      function createFeedbackChart(response) {
-    console.log('Feedback chart data:', response);
+        function createFeedbackChart(response) {
+            console.log('Feedback chart data:', response);
 
-    // Define the 4 specific questions you want to show
-    const targetQuestions = [
-        'feedback-meaningful',
-        'feedback-responsibility', 
-        'feedback-stimulating',
-        'feedback-recommendation'
-    ];
-
-    // First, create the main container with a header
-    const chartContainer = document.querySelector("#feedbackChart");
-    chartContainer.innerHTML = `
+            // First, create the main container with a header
+            const chartContainer = document.querySelector("#feedbackChart");
+            chartContainer.innerHTML = `
         <div class="feedback-overall-chart" style="margin-bottom: 30px;">
             <h4 style="margin-bottom: 15px; font-size: 16px; color: #666;">Sammanfattning av återkoppling</h4>
             <div id="overallFeedbackChart"></div>
         </div>
         <div class="feedback-questions-container">
-            <h4 style="margin: 15px 0; font-size: 16px; color: #666;">Svar per fråga (4 utvalda frågor)</h4>
+            <h4 style="margin: 15px 0; font-size: 16px; color: #666;">Svar per fråga</h4>
             <div id="questionsChartsContainer"></div>
         </div>
     `;
 
-    // Create the overall feedback chart
-    const labels = ['Håller helt med', 'Håller delvis med', 'Håller inte med'];
-    const values = [response.count_one, response.count_zero, response.count_negative_one];
+            // Wait for DOM to be ready, then create the overall chart
+            setTimeout(() => {
+                // Create the overall feedback chart
+                const labels = ['Håller helt med', 'Håller delvis med', 'Håller inte med'];
+                const values = [response.count_one, response.count_zero, response.count_negative_one];
 
-    const options = {
-        chart: {
-            type: 'bar',
-            height: 250
-        },
-        series: [{
-            name: 'Återkoppling',
-            data: values
-        }],
-        xaxis: {
-            categories: labels
-        },
-        colors: ['#10B981', '#3B82F6', '#EF4444'], // Different colors for Agree, Neutral, Disagree
-        plotOptions: {
-            bar: {
-                horizontal: false,
-                columnWidth: '50%', // Adjust bar width
-                distributed: true, // Ensures each bar gets its own color
-                borderRadius: 10
-            }
-        },
-        dataLabels: {
-            enabled: true
-        }
-    };
-
-    const overallChart = new ApexCharts(document.querySelector("#overallFeedbackChart"), options);
-    overallChart.render();
-
-    // Filter and show only the 4 specific questions
-    if (response.questions && Object.keys(response.questions).length > 0) {
-        const questionsContainer = document.querySelector("#questionsChartsContainer");
-
-        // Create a grid for question charts
-        const gridContainer = document.createElement('div');
-        gridContainer.style.display = 'grid';
-        gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, minmax(400px, 1fr))';
-        gridContainer.style.gap = '20px';
-        questionsContainer.appendChild(gridContainer);
-
-        // Filter and process only the target questions
-        targetQuestions.forEach((questionKey, index) => {
-            // Check if this question exists in the response
-            if (!response.questions[questionKey]) {
-                console.log(`Question ${questionKey} not found in response`);
-                return;
-            }
-
-            const question = response.questions[questionKey];
-
-            // Skip questions with no responses
-            const totalResponses = question.count_one + question.count_zero + question.count_negative_one;
-            if (totalResponses === 0) {
-                console.log(`Question ${questionKey} has no responses`);
-                return;
-            }
-
-            // Create chart container
-            const questionChartContainer = document.createElement('div');
-            questionChartContainer.className = 'question-chart-card';
-            questionChartContainer.style.background = '#f9f9f9';
-            questionChartContainer.style.borderRadius = '10px';
-            questionChartContainer.style.padding = '15px';
-            questionChartContainer.style.boxShadow = '0 2px 5px rgba(0,0,0,0.05)';
-
-            // Add chart title (question text)
-            const questionTitle = document.createElement('h5');
-            questionTitle.textContent = question.text;
-            questionTitle.style.fontSize = '14px';
-            questionTitle.style.marginBottom = '15px';
-            questionTitle.style.color = '#333';
-            questionTitle.style.lineHeight = '1.4';
-            questionChartContainer.appendChild(questionTitle);
-
-            // Add response count info
-            const responseInfo = document.createElement('p');
-            responseInfo.textContent = `Totalt antal svar: ${totalResponses}`;
-            responseInfo.style.fontSize = '12px';
-            responseInfo.style.color = '#666';
-            responseInfo.style.marginBottom = '10px';
-            questionChartContainer.appendChild(responseInfo);
-
-            // Create chart div
-            const chartDiv = document.createElement('div');
-            chartDiv.id = `question-chart-${questionKey}`;
-            questionChartContainer.appendChild(chartDiv);
-
-            // Add to grid
-            gridContainer.appendChild(questionChartContainer);
-
-            // Create chart
-            const questionValues = [question.count_one, question.count_zero, question.count_negative_one];
-            const questionOptions = {
-                chart: {
-                    type: 'bar',
-                    height: 200
-                },
-                series: [{
-                    name: 'Svar',
-                    data: questionValues
-                }],
-                xaxis: {
-                    categories: labels
-                },
-                colors: ['#10B981', '#3B82F6', '#EF4444'],
-                plotOptions: {
-                    bar: {
-                        horizontal: false,
-                        columnWidth: '50%',
-                        distributed: true,
-                        borderRadius: 8
-                    }
-                },
-                dataLabels: {
-                    enabled: true,
-                    formatter: function(val) {
-                        return val;
-                    }
-                },
-                legend: {
-                    show: false
-                },
-                tooltip: {
-                    y: {
-                        formatter: function(val, { seriesIndex, dataPointIndex }) {
-                            const total = questionValues.reduce((a, b) => a + b, 0);
-                            const percentage = ((val / total) * 100).toFixed(1);
-                            return `${val} svar (${percentage}%)`;
+                const overallOptions = {
+                    chart: {
+                        type: 'bar',
+                        height: 300,
+                        toolbar: {
+                            show: false
+                        }
+                    },
+                    series: [{
+                        name: 'Totalt antal svar',
+                        data: values
+                    }],
+                    xaxis: {
+                        categories: labels,
+                        labels: {
+                            style: {
+                                fontSize: '12px'
+                            }
+                        }
+                    },
+                    yaxis: {
+                        labels: {
+                            style: {
+                                fontSize: '12px'
+                            }
+                        }
+                    },
+                    colors: ['#10B981', '#3B82F6', '#EF4444'], // Green, Blue, Red
+                    plotOptions: {
+                        bar: {
+                            horizontal: false,
+                            columnWidth: '60%',
+                            distributed: true, // Each bar gets its own color
+                            borderRadius: 10
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        style: {
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            colors: ['#fff']
+                        }
+                    },
+                    legend: {
+                        show: false // Hide legend since we're using distributed colors
+                    },
+                    tooltip: {
+                        y: {
+                            formatter: function(val) {
+                                const total = response.count_one + response.count_zero + response.count_negative_one;
+                                const percentage = ((val / total) * 100).toFixed(1);
+                                return `${val} svar (${percentage}%)`;
+                            }
                         }
                     }
-                }
-            };
+                };
 
-            const questionChart = new ApexCharts(document.querySelector(`#question-chart-${questionKey}`), questionOptions);
-            questionChart.render();
-        });
+                const overallChart = new ApexCharts(document.querySelector("#overallFeedbackChart"), overallOptions);
+                overallChart.render();
+                console.log('Overall feedback chart rendered successfully');
 
-        // Add a summary section showing which questions are displayed
-        const summaryDiv = document.createElement('div');
-        summaryDiv.style.marginTop = '20px';
-        summaryDiv.style.padding = '15px';
-        summaryDiv.style.backgroundColor = '#f0f9ff';
-        summaryDiv.style.borderRadius = '8px';
-        summaryDiv.style.fontSize = '12px';
-        summaryDiv.style.color = '#1e40af';
-        
-        const displayedQuestions = targetQuestions.filter(key => 
-            response.questions[key] && 
-            (response.questions[key].count_one + response.questions[key].count_zero + response.questions[key].count_negative_one) > 0
-        );
-        
-        summaryDiv.innerHTML = `
-            <strong>Visade frågor (${displayedQuestions.length} av 4):</strong><br>
-            ${displayedQuestions.map(key => `• ${response.questions[key].text}`).join('<br>')}
-        `;
-        
-        questionsContainer.appendChild(summaryDiv);
-    }
-}
+            }, 100);
+
+            // Create individual question charts
+            if (response.questions && Object.keys(response.questions).length > 0) {
+                const questionsContainer = document.querySelector("#questionsChartsContainer");
+
+                // Filter out questions with no responses
+                const validQuestions = Object.keys(response.questions).filter(questionName => {
+                    const question = response.questions[questionName];
+                    const totalResponses = question.count_one + question.count_zero + question.count_negative_one;
+                    return totalResponses > 0;
+                });
+
+                console.log(`Creating charts for ${validQuestions.length} valid questions:`, validQuestions);
+
+                // Wait for DOM, then create grid container
+                setTimeout(() => {
+                    // Create a grid for question charts
+                    const gridContainer = document.createElement('div');
+                    gridContainer.style.display = 'grid';
+                    gridContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(400px, 1fr))';
+                    gridContainer.style.gap = '20px';
+                    gridContainer.style.marginTop = '20px';
+                    questionsContainer.appendChild(gridContainer);
+
+                    // Create each question chart
+                    validQuestions.forEach((questionName, index) => {
+                        const question = response.questions[questionName];
+
+                        console.log(`Creating chart ${index + 1} for question:`, questionName, question);
+
+                        // Create chart container
+                        const questionChartContainer = document.createElement('div');
+                        questionChartContainer.className = 'question-chart-card';
+                        questionChartContainer.style.background = '#f9f9f9';
+                        questionChartContainer.style.borderRadius = '10px';
+                        questionChartContainer.style.padding = '15px';
+                        questionChartContainer.style.boxShadow = '0 2px 5px rgba(0,0,0,0.05)';
+
+                        // Add chart title (question text)
+                        const questionTitle = document.createElement('h5');
+                        questionTitle.textContent = question.text;
+                        questionTitle.style.fontSize = '14px';
+                        questionTitle.style.marginBottom = '15px';
+                        questionTitle.style.color = '#333';
+                        questionTitle.style.lineHeight = '1.4';
+                        questionTitle.style.wordWrap = 'break-word';
+                        questionChartContainer.appendChild(questionTitle);
+
+                        // Create chart div with unique ID
+                        const chartDiv = document.createElement('div');
+                        const chartId = `question-chart-${questionName.replace(/[^a-zA-Z0-9]/g, '-')}-${index}`;
+                        chartDiv.id = chartId;
+                        questionChartContainer.appendChild(chartDiv);
+
+                        // Add to grid
+                        gridContainer.appendChild(questionChartContainer);
+
+                        // Create chart with delay
+                        setTimeout(() => {
+                            const chartElement = document.querySelector(`#${chartId}`);
+                            if (!chartElement) {
+                                console.error(`Chart element not found: ${chartId}`);
+                                return;
+                            }
+
+                            const questionValues = [question.count_one, question.count_zero, question.count_negative_one];
+                            const totalResponses = questionValues.reduce((a, b) => a + b, 0);
+                            const labels = ['Håller helt med', 'Håller delvis med', 'Håller inte med'];
+
+                            const questionOptions = {
+                                chart: {
+                                    type: 'bar',
+                                    height: 250,
+                                    toolbar: {
+                                        show: false
+                                    }
+                                },
+                                series: [{
+                                    name: 'Antal svar',
+                                    data: questionValues
+                                }],
+                                xaxis: {
+                                    categories: labels,
+                                    labels: {
+                                        style: {
+                                            fontSize: '11px'
+                                        },
+                                        rotate: -45
+                                    }
+                                },
+                                yaxis: {
+                                    labels: {
+                                        style: {
+                                            fontSize: '11px'
+                                        }
+                                    }
+                                },
+                                colors: ['#10B981', '#3B82F6', '#EF4444'], // Same colors as overall chart
+                                plotOptions: {
+                                    bar: {
+                                        horizontal: false,
+                                        columnWidth: '70%',
+                                        distributed: true,
+                                        borderRadius: 8
+                                    }
+                                },
+                                dataLabels: {
+                                    enabled: true,
+                                    style: {
+                                        fontSize: '12px',
+                                        fontWeight: 'bold',
+                                        colors: ['#fff']
+                                    }
+                                },
+                                legend: {
+                                    show: false
+                                },
+                                tooltip: {
+                                    y: {
+                                        formatter: function(val) {
+                                            const percentage = ((val / totalResponses) * 100).toFixed(1);
+                                            return `${val} svar (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            };
+
+                            try {
+                                const questionChart = new ApexCharts(chartElement, questionOptions);
+                                questionChart.render();
+                                console.log(`Successfully rendered chart ${index + 1} for: ${questionName}`);
+                            } catch (error) {
+                                console.error(`Error rendering chart for ${questionName}:`, error);
+                            }
+                        }, 200 * (index + 1)); // Stagger the chart creation
+                    });
+
+                    // Add summary info after all charts
+                    setTimeout(() => {
+                        const summaryDiv = document.createElement('div');
+                        summaryDiv.style.marginTop = '30px';
+                        summaryDiv.style.padding = '20px';
+                        summaryDiv.style.background = '#f0f9ff';
+                        summaryDiv.style.borderRadius = '10px';
+                        summaryDiv.style.borderLeft = '4px solid #3B82F6';
+                        const totalResponses = response.count_one + response.count_zero + response.count_negative_one;
+                        summaryDiv.innerHTML = `
+                    <h5 style="margin: 0 0 10px 0; color: #1e40af; font-size: 16px;">📊 Sammanfattning</h5>
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                        <div style="background: white; padding: 10px; border-radius: 8px; min-width: 120px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #10B981;">${response.count_one}</div>
+                            <div style="font-size: 12px; color: #666;">Håller helt med</div>
+                        </div>
+                        <div style="background: white; padding: 10px; border-radius: 8px; min-width: 120px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #3B82F6;">${response.count_zero}</div>
+                            <div style="font-size: 12px; color: #666;">Håller delvis med</div>
+                        </div>
+                        <div style="background: white; padding: 10px; border-radius: 8px; min-width: 120px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #EF4444;">${response.count_negative_one}</div>
+                            <div style="font-size: 12px; color: #666;">Håller inte med</div>
+                        </div>
+                        <div style="background: white; padding: 10px; border-radius: 8px; min-width: 120px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #333;">${totalResponses}</div>
+                            <div style="font-size: 12px; color: #666;">Totalt svar</div>
+                        </div>
+                    </div>
+                    <p style="margin: 15px 0 0 0; font-size: 14px; color: #666;">
+                        <strong>${validQuestions.length}</strong> frågor visas av ${Object.keys(response.questions).length} totalt
+                    </p>
+                `;
+                        questionsContainer.appendChild(summaryDiv);
+                    }, 1000);
+
+                }, 150);
+            } else {
+                console.warn('No questions data available or questions object is empty');
+            }
+        }
         // Function to create a chart
-      
-      
         function createChart(chartId, labelMapping, valueMapping) {
             const ctx = document.getElementById(chartId).getContext('2d');
             const labels = Object.values(labelMapping);
