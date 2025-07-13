@@ -297,3 +297,84 @@
         });
     };
 })();
+
+// Frontend translation for Swedish answer options
+(function() {
+    // Swedish to English translation mapping for common answer options
+    const swedishToEnglish = {
+        'Mycket bra': 'Very good',
+        'Ganska bra': 'Quite good', 
+        'Medelbra': 'Average',
+        'Inte så bra': 'Not so good',
+        'Dålig': 'Poor',
+        'Ja, nästan alltid': 'Yes, almost always',
+        'Ja, oftast': 'Yes, usually',
+        'Ja, ganska ofta': 'Yes, quite often',
+        'Nej, sällan': 'No, rarely',
+        'Nej, nästan aldrig': 'No, almost never',
+        'Ja': 'Yes',
+        'Nej': 'No',
+        'Aldrig': 'Never',
+        'Sällan': 'Rarely',
+        'Ibland': 'Sometimes',
+        'Ofta': 'Often',
+        'Mycket ofta': 'Very often',
+        'Alltid': 'Always',
+        'Inget svar': 'No answer'
+    };
+
+    // Function to translate Swedish text to English
+    function translateSwedishToEnglish(text) {
+        if (typeof text !== 'string') return text;
+        
+        // Check if we're in English mode
+        const isEnglish = document.documentElement.lang === 'en' || 
+                         window.location.pathname.includes('/en') ||
+                         document.querySelector('html[lang="en"]');
+        
+        if (!isEnglish) return text;
+        
+        // Check if text is Swedish (contains Swedish characters or known Swedish words)
+        const swedishPattern = /[åäöÅÄÖ]/;
+        const isSwedish = swedishPattern.test(text) || swedishToEnglish.hasOwnProperty(text);
+        
+        if (isSwedish) {
+            return swedishToEnglish[text] || text;
+        }
+        
+        return text;
+    }
+
+    // Function to translate all labels on the page
+    function translateLabels() {
+        const labels = document.querySelectorAll('label');
+        labels.forEach(label => {
+            const originalText = label.textContent.trim();
+            const translatedText = translateSwedishToEnglish(originalText);
+            if (translatedText !== originalText) {
+                label.textContent = translatedText;
+            }
+        });
+    }
+
+    // Run translation when page loads
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', translateLabels);
+    } else {
+        translateLabels();
+    }
+
+    // Also run translation when content changes (for dynamic content)
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                translateLabels();
+            }
+        });
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+})();
