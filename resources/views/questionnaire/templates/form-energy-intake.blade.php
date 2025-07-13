@@ -15,12 +15,16 @@
     @endif
     <div class="elements energy-question">
         @if (empty($values['weight']) || empty($values['length']) || empty($values['training']))
-            Du måste svara på frågorna <em>Vikt</em>, <em>Längd</em> och <em>Fysisk träning</em>
+            @if (App::isLocale('en'))
+                You must answer the questions <em>Weight</em>, <em>Length</em> and <em>Physical training</em>
+            @else
+                Du måste svara på frågorna <em>Vikt</em>, <em>Längd</em> och <em>Fysisk träning</em>
+            @endif
         @else
-            @foreach (\App\Nobox\Calculation\EnergyIntake::$groups as $group)
+            @foreach (\App\Nobox\Calculation\EnergyIntake::getGroups() as $group)
                 <div class="food-group">
                     <h3>{{ $group['label'] }}</h3>
-                    @foreach (\App\Nobox\Calculation\EnergyIntake::$options as $option)
+                    @foreach (\App\Nobox\Calculation\EnergyIntake::getOptions() as $option)
                         @if ($option['group'] === $group['name'])
                             <div class="food-option">
                                 <input type="number" min="0" max="9" id="{{ $option['name'] }}" name="{{ $option['name'] }}" value="{{ $values[$option['name']] ?? '0' }}" {{ !$editable ? 'disabled="disabled"' : '' }}>
@@ -30,7 +34,13 @@
                     @endforeach
                 </div>
             @endforeach
-            <div>Ditt kcaloriintag är <span class="energy-intake-value">{{ $values['foodEnergyIntake'] ?? '0' }}</span> kcal</div>
+            <div>
+                @if (App::isLocale('en'))
+                    Your calorie intake is <span class="energy-intake-value">{{ $values['foodEnergyIntake'] ?? '0' }}</span> kcal
+                @else
+                    Ditt kcaloriintag är <span class="energy-intake-value">{{ $values['foodEnergyIntake'] ?? '0' }}</span> kcal
+                @endif
+            </div>
         @endif
     </div>
     @if ($has_help)

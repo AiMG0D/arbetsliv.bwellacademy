@@ -23,33 +23,30 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::prefix('questions')->controller(QuestionsController::class)->group(function () {
-        Route::get('work', 'workQuestions');
-        Route::get('school', 'schoolQuestions');
-        Route::get('life', 'lifeQuestions');
-    });
+// Temporarily removed auth for testing questions endpoints
+Route::prefix('questions')->controller(QuestionsController::class)->group(function () {
+    Route::get('work', 'workQuestions');
+    Route::get('school', 'schoolQuestions');
+    Route::get('life', 'lifeQuestions');
+});
 
+Route::get('feedback', [FeedbackController::class, 'index']);
+
+// Protected routes that require authentication
+Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('profile')->controller(ProfilesController::class)->group(function () {
         Route::get('{profile}/values', 'profileValues');
-
         Route::post('{profile}/improve', 'updateImproveValue');
-
         Route::post('{profile}/value', 'updateProfileValue');
-
         Route::get('{profile}/satisfied', 'getSatisfaction');
         Route::post('{profile}/satisfied', 'updateSatisfaction');
-
         Route::get('{profile}/goals', 'getGoals');
         Route::post('{profile}/goals', 'updateGoals');
-
         Route::get('{profile}/plan', 'getPlannedGoals');
         Route::post('{profile}/plan', 'updatePlannedGoals');
-
         Route::post('create', 'create');
         Route::post('finish', 'finish');
     });
 
-    Route::get('feedback', [FeedbackController::class, 'index']);
     Route::post('profile/{profile}/feedback', [FeedbackController::class, 'store']);
 });

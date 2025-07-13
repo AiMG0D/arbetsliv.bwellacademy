@@ -2,6 +2,8 @@
 
 namespace App\Nobox\Calculation;
 
+use Illuminate\Support\Facades\App;
+
 class EnergyIntake
 {
     public static $groups = [
@@ -26,6 +28,77 @@ class EnergyIntake
             'label' => 'Kvällsmål',
         ],
     ];
+
+    public static function getGroups()
+    {
+        $locale = App::getLocale();
+        
+        if ($locale === 'en') {
+            return [
+                [
+                    'name' => 'breakfast',
+                    'label' => 'Breakfast',
+                ],
+                [
+                    'name' => 'lunch',
+                    'label' => 'Lunch (if you feel you eat a large portion or take two portions or at several times during the day, you click more than one portion)',
+                ],
+                [
+                    'name' => 'snacks',
+                    'label' => 'Coffee break/snacks',
+                ],
+                [
+                    'name' => 'dinner',
+                    'label' => 'Dinner (if you feel you eat a large portion or take two portions or at several times during the day, you click more than one portion)',
+                ],
+                [
+                    'name' => 'eveningmeal',
+                    'label' => 'Evening meal',
+                ],
+            ];
+        }
+        
+        return self::$groups;
+    }
+
+    public static function getOptions()
+    {
+        $locale = App::getLocale();
+        
+        if ($locale === 'en') {
+            // For English, we'll use DeepL translation if available
+            $key = env('DEEPL_KEY');
+            if ($key) {
+                try {
+                    $deeplClient = new \DeepL\DeepLClient($key);
+                    
+                    // Collect all Swedish labels for translation
+                    $swedishLabels = array_column(self::$options, 'label');
+                    
+                    // Translate all labels at once
+                    $translatedLabels = $deeplClient->translateText($swedishLabels, 'sv', 'en-US');
+                    
+                    // Create new options array with translated labels
+                    $translatedOptions = [];
+                    foreach (self::$options as $index => $option) {
+                        $translatedOptions[] = [
+                            'group' => $option['group'],
+                            'name' => $option['name'],
+                            'label' => $translatedLabels[$index]->text,
+                            'kcal' => $option['kcal'],
+                        ];
+                    }
+                    
+                    return $translatedOptions;
+                } catch (\Exception $e) {
+                    // If DeepL fails, fall back to Swedish
+                    \Log::error('DeepL translation error (EnergyIntake options): ' . $e->getMessage());
+                }
+            }
+        }
+        
+        return self::$options;
+    }
 
     public static $options = [
         // breakfast

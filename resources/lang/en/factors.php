@@ -72,5 +72,5 @@ return [
     'strAbs' => 'Strength stomach',
     'stepcount' => 'Step count',
     'pushups' => 'Pushups',
-    'otcDrugs' => 'Receptfria läkemedel',
+    'otcDrugs' => 'Non-prescription medicines',
 ];

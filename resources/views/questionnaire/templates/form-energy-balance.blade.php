@@ -15,11 +15,33 @@
     @endif
     <div class="elements energy-question">
         @if (empty($values['weight']) || empty($values['length']) || empty($values['training']))
-            Du måste svara på frågorna <em>Vikt</em>, <em>Längd</em> och <em>Fysisk träning</em>
+            @if (App::isLocale('en'))
+                You must answer the questions <em>Weight</em>, <em>Length</em> and <em>Physical training</em>
+            @else
+                Du måste svara på frågorna <em>Vikt</em>, <em>Längd</em> och <em>Fysisk träning</em>
+            @endif
         @else
-            <div>Ditt energibehov är {{ $values['foodEnergyNeeds'] ?? '0' }} kcal</div>
-            <div>Ditt energiintag är <span class="energy-intake-value">{{ $values['foodEnergyIntake'] ?? '0' }}</span> kcal</div>
-            <div>Resultat <span class="energy-balance-value">{{ ($values['foodEnergyBalance'] ?? 0) >= 0 ? '+' : '' }}{{ $values['foodEnergyBalance'] ?? '0' }}</span> kcal</div>
+            <div>
+                @if (App::isLocale('en'))
+                    Your energy needs are {{ $values['foodEnergyNeeds'] ?? '0' }} kcal
+                @else
+                    Ditt energibehov är {{ $values['foodEnergyNeeds'] ?? '0' }} kcal
+                @endif
+            </div>
+            <div>
+                @if (App::isLocale('en'))
+                    Your energy intake is <span class="energy-intake-value">{{ $values['foodEnergyIntake'] ?? '0' }}</span> kcal
+                @else
+                    Ditt energiintag är <span class="energy-intake-value">{{ $values['foodEnergyIntake'] ?? '0' }}</span> kcal
+                @endif
+            </div>
+            <div>
+                @if (App::isLocale('en'))
+                    Result <span class="energy-balance-value">{{ ($values['foodEnergyBalance'] ?? 0) >= 0 ? '+' : '' }}{{ $values['foodEnergyBalance'] ?? '0' }}</span> kcal
+                @else
+                    Resultat <span class="energy-balance-value">{{ ($values['foodEnergyBalance'] ?? 0) >= 0 ? '+' : '' }}{{ $values['foodEnergyBalance'] ?? '0' }}</span> kcal
+                @endif
+            </div>
         @endif
     </div>
     @if ($has_help)

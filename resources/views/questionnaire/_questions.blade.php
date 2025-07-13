@@ -6,6 +6,27 @@ $counts = DB::table('questionnaire_questions')
     ->groupBy('category_id')
     ->pluck('total', 'category_id');
 
+// Simple DeepL translation function for frontend
+function translateWithDeepL($text, $from = 'sv', $to = 'en') {
+    if (App::isLocale('sv')) {
+        return $text; // No translation needed for Swedish
+    }
+    
+    $key = env('DEEPL_KEY');
+    if (!$key) {
+        return $text; // No DeepL key available
+    }
+    
+    try {
+        $deeplClient = new \DeepL\DeepLClient($key);
+        $result = $deeplClient->translateText($text, $from, $to);
+        return $result[0]->text;
+    } catch (Exception $e) {
+        \Log::error('DeepL translation failed: ' . $e->getMessage());
+        return $text; // Return original text if translation fails
+    }
+}
+
 $groups = $page->groups()
     ->with('type')
     ->orderBy('weight', 'ASC')
@@ -47,10 +68,52 @@ foreach ($groups as $group) {
                     $json['labels'] = $json['labels_sv'];
                 }
             } elseif (App::isLocale('en')) {
-                if (isset($json['labels_en'])) {
-                    $json['labels'] = $json['labels_en'];
+                // Check if English labels exist and are different from Swedish
+                $useEnglishLabels = false;
+                if (isset($json['labels_en']) && !empty(array_filter($json['labels_en']))) {
+                    // Check if English labels are different from Swedish
+                    if (isset($json['labels_sv'])) {
+                        $differentLabels = false;
+                        foreach ($json['labels_en'] as $index => $enLabel) {
+                            if (isset($json['labels_sv'][$index]) && $enLabel !== $json['labels_sv'][$index]) {
+                                $differentLabels = true;
+                                break;
+                            }
+                        }
+                        if ($differentLabels) {
+                            $json['labels'] = $json['labels_en'];
+                            $useEnglishLabels = true;
+                        }
+                    } else {
+                        $json['labels'] = $json['labels_en'];
+                        $useEnglishLabels = true;
+                    }
+                }
+                
+                // If English labels are missing or identical to Swedish, use Swedish and translate with DeepL
+                if (!$useEnglishLabels && isset($json['labels_sv'])) {
+                    $json['labels'] = $json['labels_sv'];
+                    // Translate Swedish labels to English if we're in English mode
+                    if (App::isLocale('en')) {
+                        foreach ($json['labels'] as $index => $label) {
+                            $json['labels'][$index] = translateWithDeepL($label);
+                        }
+                    }
                 }
             }
+        }
+        
+        // DEBUG: Check if this is the physicalCondition question
+        if ($question->form_name === 'physicalCondition') {
+            \Log::info('PHYSICAL CONDITION DEBUG', [
+                'question_name' => $question->form_name,
+                'locale' => App::getLocale(),
+                'has_labels' => isset($json['labels']),
+                'labels' => $json['labels'] ?? 'NOT SET',
+                'labels_sv' => $json['labels_sv'] ?? 'NOT SET',
+                'labels_en' => $json['labels_en'] ?? 'NOT SET',
+                'useEnglishLabels' => $useEnglishLabels ?? 'NOT SET'
+            ]);
         }
 
         $description = $question->t_description();

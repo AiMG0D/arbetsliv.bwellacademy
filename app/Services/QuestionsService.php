@@ -8,8 +8,9 @@ use Illuminate\Support\Str;
 
 class QuestionsService
 {
-    public function workQuestions(): array
+    public function workQuestions(string $locale = 'sv'): array
     {
+        $key = env('DEEPL_KEY');
         $page = QuestionnairePage::where('name', 'work')
             ->with('groups.questions.type')
             ->first();
@@ -18,17 +19,25 @@ class QuestionsService
             return [];
         }
 
-        $groups = $this->transformGroupsWorkAndSchool($page->groups);
+        $groups = $this->transformGroupsWorkAndSchool($page->groups, $locale);
 
-        return [
+        $result = [
             'pageName' => $page->name,
-            'pageLabel' => $page->label_sv,
+            'pageLabel' => $this->getTranslatedLabel($page, $locale),
             'groups' => $groups,
         ];
+
+        // Apply DeepL translation if needed and key is available
+        if ($locale === 'en' && $key) {
+            $result = $this->applyDeepLTranslationToWorkSchool($result);
+        }
+
+        return $result;
     }
 
-    public function schoolQuestions(): array
+    public function schoolQuestions(string $locale = 'sv'): array
     {
+        $key = env('DEEPL_KEY');
         $page = QuestionnairePage::where('name', 'school')
             ->with('groups.questions.type')
             ->first();
@@ -37,18 +46,24 @@ class QuestionsService
             return [];
         }
 
-        $groups = $this->transformGroupsWorkAndSchool($page->groups);
+        $groups = $this->transformGroupsWorkAndSchool($page->groups, $locale);
 
-        return [
+        $result = [
             'pageName' => $page->name,
-            'pageLabel' => $page->label_sv,
+            'pageLabel' => $this->getTranslatedLabel($page, $locale),
             'groups' => $groups,
         ];
+
+        // Apply DeepL translation if needed and key is available
+        if ($locale === 'en' && $key) {
+            $result = $this->applyDeepLTranslationToWorkSchool($result);
+        }
+
+        return $result;
     }
 
-    public function lifeQuestions(): array
+    public function lifeQuestions(string $locale = 'sv'): array
     {
-
         $key = env('DEEPL_KEY');
         $pages = QuestionnairePage::whereNotIn('name', ['work', 'school'])
             ->with('groups.questions.type')
@@ -57,7 +72,7 @@ class QuestionsService
         $sections = [];
 
         foreach ($pages as $page) {
-            $groups = $this->transformGroups($page->groups);
+            $groups = $this->transformGroups($page->groups, $locale);
 
             if ($page->name === 'physical') {
                 if (config('fms.type') === 'school') {
@@ -72,24 +87,7 @@ class QuestionsService
                     ]);
                 }
 
-                // array_splice($groups, -1, 0, [
-                //     [
-                //         'label' => 'fitness-instruction',
-                //         'category_id' => 0,
-                //         'can_improve' => false,
-                //         'improve_name' => null,
-                //         'questions' => [],
-                //     ],
-                // ]);
-
                 $groups = [
-                    // [
-                    //     'label' => 'prelude',
-                    //     'category_id' => 0,
-                    //     'can_improve' => false,
-                    //     'improve_name' => null,
-                    //     'questions' => [],
-                    // ],
                     ...$groups,
                     [
                         'label' => 'epilogue',
@@ -149,7 +147,7 @@ class QuestionsService
                     [
                         'label' => 'buddy',
                         'value' => [
-                            'text' => '<br><br>Hur har du det på<br>din fritid då?',
+                            'text' => $locale === 'en' ? '<br><br>How are you doing<br>in your free time then?' : '<br><br>Hur har du det på<br>din fritid då?',
                             'color' => 'green',
                         ],
                     ],
@@ -167,114 +165,38 @@ class QuestionsService
                     ...$groups,
                 ];
             } elseif ($page->name === 'energy') {
-                $groups[0]['questions'][0]['description'] = 'Jag äter följande 5 måltider: frukost, lunch, middag och mellanmål (inkl kvällsmat)';
+                $groups[0]['questions'][0]['description'] = $locale === 'en' ? 'I eat the following 5 meals: breakfast, lunch, dinner and snacks (including evening meal)' : 'Jag äter följande 5 måltider: frukost, lunch, middag och mellanmål (inkl kvällsmat)';
                 $oldGroup = $groups;
                 $groups = [
                     ['label' => 'buddy-energy'],
                     ...$oldGroup,
-                    /*$oldGroup[0],
-                    [
-                        'label' => 'Frukost',
-                        'type' => 'food-breakfast',
-                    ],
-                    [
-                        'label' => 'Mellanmål',
-                        'type' => 'food-snack-count',
-                    ],
-                    [
-                        'label' => 'Mellanmål',
-                        'type' => 'food-snack',
-                    ],
-                    [
-                        'label' => 'Lunch',
-                        'type' => 'food-lunch',
-                    ],
-                    [
-                        'label' => 'Middag',
-                        'type' => 'food-dinner',
-                    ],
-                    ...array_slice($oldGroup, 1),*/
                 ];
             }
 
             $sections[] = [
                 'pageName' => $page->name,
-                'pageLabel' => $page->label_sv,
+                'pageLabel' => $this->getTranslatedLabel($page, $locale),
                 'groups' => $groups,
                 'oldGroup' => $oldGroup ?? null,
             ];
         }
 
-
-/*
-        if ($key) {
-            $deeplClient = new \DeepL\DeepLClient($key);
-
-            foreach ($sections as &$section) {
-                $page_label = $section['pageLabel'];
-                $cacheKey = 'deepl:pageLabel:' . md5($page_label);
-                $translated = Cache::remember($cacheKey, now()->addDays(7), function () use ($deeplClient, $page_label) {
-                    return $deeplClient->translateText($page_label, 'sv', 'en-US')->text;
-                });
-                $section['pageLabel'] = $translated;
-
-                foreach ($section['groups'] as &$group) {
-                    // Translate group label
-                    if (isset($group['label'])) {
-                        $cacheKey = 'deepl:groupLabel:' . md5($group['label']);
-                        $group['label'] = Cache::remember($cacheKey, now()->addDays(7), function () use ($deeplClient, $group) {
-                            try {
-                                return $deeplClient->translateText($group['label'], 'sv', 'en-US')->text;
-                            } catch (\Exception $e) {
-                                \Log::error('DeepL translation error (group label): ' . $e->getMessage());
-                                return $group['label'];
-                            }
-                        });
-                    }
-
-                    // Translate question descriptions
-                    if (isset($group['questions']) && is_array($group['questions'])) {
-                        foreach ($group['questions'] as &$question) {
-                            if (!empty($question['description'])) {
-                                $cacheKey = 'deepl:questionDesc:' . md5($question['description']);
-                                $question['description'] = Cache::remember($cacheKey, now()->addDays(7), function () use ($deeplClient, $question) {
-                                    try {
-                                        return $deeplClient->translateText($question['description'], 'sv', 'en-US')->text;
-                                    } catch (\Exception $e) {
-                                        \Log::error('DeepL translation error (question description): ' . $e->getMessage());
-                                        return $question['description'];
-                                    }
-                                });
-                            }
-
-                            if (!empty($question['poster']) && !empty($question['poster']['text'])) {
-                                $cacheKey = 'deepl:posterText:' . md5($question['poster']['text']);
-                                $question['poster']['text'] = Cache::remember($cacheKey, now()->addDays(7), function () use ($deeplClient, $question) {
-                                    try {
-                                        return $deeplClient->translateText($question['poster']['text'], 'sv', 'en-US')->text;
-                                    } catch (\Exception $e) {
-                                        \Log::error('DeepL translation error (poster text): ' . $e->getMessage());
-                                        return $question['poster']['text'];
-                                    }
-                                });
-                            }
-                        }
-                    }
-                }
-            }
+        // Apply DeepL translation if needed and key is available
+        if ($locale === 'en' && $key) {
+            $sections = $this->applyDeepLTranslation($sections);
         }
-*/
+
         return [
             'sections' => $sections,
         ];
     }
 
-    protected function transformGroupsWorkAndSchool($pageGroups): array
+    protected function transformGroupsWorkAndSchool($pageGroups, string $locale): array
     {
         $groups = [];
 
         foreach ($pageGroups as $group) {
-            $questions = collect($group->questions)->map(function ($question) {
+            $questions = collect($group->questions)->map(function ($question) use ($locale) {
                 $questionData = $question->data !== null ? json_decode($question->data) : null;
 
                 return [
@@ -298,7 +220,7 @@ class QuestionsService
             }
 
             $groups[] = [
-                'label' => $group->label_sv,
+                'label' => $this->getTranslatedLabel($group, $locale),
                 'questions' => $questions,
             ];
         }
@@ -306,7 +228,7 @@ class QuestionsService
         return $groups;
     }
 
-    protected function transformGroups($pageGroups): array
+    protected function transformGroups($pageGroups, string $locale): array
     {
         $skipQuestions = [
             'stepcount',
@@ -395,10 +317,11 @@ class QuestionsService
                     $collection = collect($questionData->items);
 
                     if ($questionData->count === 7) {
-                        $items = $collection->map(function ($value, $index) use ($questionData) {
+                        $items = $collection->map(function ($value, $index) use ($questionData, $locale) {
                             $label = $index + 1;
-                            if ($questionData->labels_sv[$index] !== null) {
-                                $label .= ' - ' . $questionData->labels_sv[$index];
+                            $labels = $locale === 'en' && isset($questionData->labels_en) && !empty($questionData->labels_en[$index]) ? $questionData->labels_en : $questionData->labels_sv;
+                            if ($labels[$index] !== null) {
+                                $label .= ' - ' . $labels[$index];
                             }
 
                             return [
@@ -407,17 +330,30 @@ class QuestionsService
                             ];
                         });
                     } elseif ($questionData->count === 2) {
-                        $items = $collection->map(function ($value, $index) use ($questionData) {
+                        $items = $collection->map(function ($value, $index) use ($questionData, $locale) {
+                            $labels = $locale === 'en' && isset($questionData->labels_en) && !empty($questionData->labels_en[$index]) ? $questionData->labels_en : $questionData->labels_sv;
                             return [
-                                'label' => $questionData->labels_sv[$index],
+                                'label' => $labels[$index],
                                 'value' => $value === '1' ? '0' : '1',
                             ];
                         });
                     } else {
-                        $items = $collection->map(fn ($value, $index) => [
-                            'label' => $questionData->labels_sv[$index],
-                            'value' => (string) $value,
-                        ]);
+                        $items = $collection->map(function ($value, $index) use ($questionData, $locale) {
+                            // Check if English labels exist and are different from Swedish
+                            $useEnglishLabels = false;
+                            if ($locale === 'en' && isset($questionData->labels_en) && !empty($questionData->labels_en[$index])) {
+                                // If English label exists and is different from Swedish, use it
+                                if (isset($questionData->labels_sv[$index]) && $questionData->labels_en[$index] !== $questionData->labels_sv[$index]) {
+                                    $useEnglishLabels = true;
+                                }
+                            }
+                            
+                            $labels = $useEnglishLabels ? $questionData->labels_en : $questionData->labels_sv;
+                            return [
+                                'label' => $labels[$index],
+                                'value' => (string) $value,
+                            ];
+                        });
                     }
                 } elseif ($type === 'joint') {
                     $items = [
@@ -447,9 +383,8 @@ class QuestionsService
                     $type = 'pushups';
                 }
 
-                // Todo: Return correct localized strings from request language
+                // Always use Swedish content - DeepL will translate if needed
                 $description = $question->description_sv;
-
                 $label = $question->label_sv ?? '';
                 if (str_contains($label, 'Rörlighet')) {
                     $label = Str::before($label, ' ');
@@ -458,10 +393,14 @@ class QuestionsService
                 }
 
                 if (is_string($description) && preg_match('/<a.+href="(.+?\.jpg)".*?>(.+?)<\/a>/i', $description, $matches)) {
-                    $question->poster_sv_url = url($matches[1]);
-                    $question->poster_sv_text = trim($matches[2], ' ()');
+                    $posterUrl = url($matches[1]);
+                    $posterText = trim($matches[2], ' ()');
 
                     $description = trim(preg_replace('/<a.+href="(.+?)".*?>(.+?)<\/a>/i', '', $description));
+                } else {
+                    // Always use Swedish content - DeepL will translate if needed
+                    $posterUrl = $question->poster_sv_url;
+                    $posterText = $question->poster_sv_text;
                 }
 
                 $transformedQuestion = [
@@ -474,8 +413,8 @@ class QuestionsService
                     'data' => $items ?? $questionData,
                     'video_id' => $question->video_id,
                     'poster' => [
-                        'url' => $question->poster_sv_url !== null ? url($question->poster_sv_url) : null,
-                        'text' => $question->poster_sv_text,
+                        'url' => $posterUrl !== null ? url($posterUrl) : null,
+                        'text' => $posterText,
                     ],
                 ];
 
@@ -496,7 +435,7 @@ class QuestionsService
 
             if (count($groupedQuestionsBucket) > 0) {
                 $groups[] = [
-                    'label' => $group->label_sv,
+                    'label' => $this->getTranslatedLabel($group, $locale),
                     'category_id' => $groupedQuestionsBucket[0]['category_id'],
                     'can_improve' => true,
                     'improve_name' => 'agility',
@@ -521,5 +460,376 @@ class QuestionsService
         }
 
         return $groups;
+    }
+
+    protected function getTranslatedLabel($page, string $locale): string
+    {
+        $key = env('DEEPL_KEY');
+        if ($locale === 'en' && $key) {
+            $deeplClient = new \DeepL\DeepLClient($key);
+            $cacheKey = 'deepl:pageLabel:' . md5($page->label_sv);
+            return Cache::remember($cacheKey, now()->addDays(7), function () use ($deeplClient, $page) {
+                try {
+                    return $deeplClient->translateText($page->label_sv, 'sv', 'en-US')->text;
+                } catch (\Exception $e) {
+                    \Log::error('DeepL translation error (page label): ' . $e->getMessage());
+                    return $page->label_sv;
+                }
+            });
+        }
+        return $page->label_sv;
+    }
+
+    protected function translateText(string $text, string $locale): string
+    {
+        $key = env('DEEPL_KEY');
+        if ($locale === 'en' && $key) {
+            $deeplClient = new \DeepL\DeepLClient($key);
+            $cacheKey = 'deepl:text:' . md5($text);
+            return Cache::remember($cacheKey, now()->addDays(7), function () use ($deeplClient, $text) {
+                try {
+                    return $deeplClient->translateText($text, 'sv', 'en-US')->text;
+                } catch (\Exception $e) {
+                    \Log::error('DeepL translation error (text): ' . $e->getMessage());
+                    return $text;
+                }
+            });
+        }
+        return $text;
+    }
+
+    protected function applyDeepLTranslation(array $sections): array
+    {
+        $key = env('DEEPL_KEY');
+        if ($key) {
+            $deeplClient = new \DeepL\DeepLClient($key);
+
+            // Collect all strings that need translation
+            $stringsToTranslate = [];
+            $translationMap = [];
+
+            foreach ($sections as $sectionIndex => &$section) {
+                $page_label = $section['pageLabel'];
+                $stringsToTranslate[] = $page_label;
+                $translationMap['section_page_' . $sectionIndex] = count($stringsToTranslate) - 1;
+
+                if (isset($section['groups']) && is_array($section['groups'])) {
+                    foreach ($section['groups'] as $groupIndex => &$group) {
+                        if (!empty($group['label'])) {
+                            $stringsToTranslate[] = $group['label'];
+                            $translationMap['section_group_' . $sectionIndex . '_' . $groupIndex] = count($stringsToTranslate) - 1;
+                        }
+
+                        // Handle buddy text values
+                        if (isset($group['value']) && isset($group['value']['text'])) {
+                            $stringsToTranslate[] = $group['value']['text'];
+                            $translationMap['section_buddy_text_' . $sectionIndex . '_' . $groupIndex] = count($stringsToTranslate) - 1;
+                        }
+
+                        if (isset($group['questions']) && is_array($group['questions'])) {
+                            foreach ($group['questions'] as $questionIndex => &$question) {
+                                if (!empty($question['description'])) {
+                                    $stringsToTranslate[] = $question['description'];
+                                    $translationMap['section_question_desc_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex] = count($stringsToTranslate) - 1;
+                                }
+
+                                if (!empty($question['label'])) {
+                                    // Check if English label is missing or identical to Swedish
+                                    $shouldTranslate = true;
+                                    if (isset($question['label_en']) && !empty($question['label_en'])) {
+                                        // If English label exists and is different from Swedish, use it
+                                        if ($question['label_en'] !== $question['label']) {
+                                            $question['label'] = $question['label_en'];
+                                            $shouldTranslate = false;
+                                        }
+                                    }
+                                    
+                                    if ($shouldTranslate) {
+                                        $stringsToTranslate[] = $question['label'];
+                                        $translationMap['section_question_label_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex] = count($stringsToTranslate) - 1;
+                                    }
+                                }
+
+                                if (!empty($question['poster']) && !empty($question['poster']['text'])) {
+                                    $stringsToTranslate[] = $question['poster']['text'];
+                                    $translationMap['section_poster_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex] = count($stringsToTranslate) - 1;
+                                }
+
+                                // Collect option strings for question data
+                                if (isset($question['data']) && is_array($question['data'])) {
+                                    foreach ($question['data'] as $oIndex => $option) {
+                                        if (!empty($option['label'])) {
+                                            // Check if English label is missing or identical to Swedish
+                                            $shouldTranslate = true;
+                                            if (isset($option['label_en']) && !empty($option['label_en'])) {
+                                                // If English label exists and is different from Swedish, use it
+                                                if ($option['label_en'] !== $option['label']) {
+                                                    $option['label'] = $option['label_en'];
+                                                    $shouldTranslate = false;
+                                                }
+                                            }
+                                            
+                                            if ($shouldTranslate) {
+                                                $stringsToTranslate[] = $option['label'];
+                                                $translationMap['section_option_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex . '_' . $oIndex] = count($stringsToTranslate) - 1;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Batch translate all strings at once
+            if (!empty($stringsToTranslate)) {
+                \Log::info('Batch translating sections', ['count' => count($stringsToTranslate)]);
+                
+                try {
+                    // Split into chunks of 50 to avoid DeepL limits
+                    $chunks = array_chunk($stringsToTranslate, 50);
+                    $allTranslatedStrings = [];
+                    
+                    foreach ($chunks as $chunkIndex => $chunk) {
+                        \Log::info('Translating section chunk', ['chunk_index' => $chunkIndex, 'size' => count($chunk)]);
+                        
+                        $translatedChunk = $deeplClient->translateText($chunk, 'sv', 'en-US');
+                        $allTranslatedStrings = array_merge($allTranslatedStrings, $translatedChunk);
+                        
+                        // Small delay between chunks to avoid rate limiting
+                        if ($chunkIndex < count($chunks) - 1) {
+                            usleep(200000); // 200ms delay
+                        }
+                    }
+                    
+                    \Log::info('Section batch translation completed', ['total_translated' => count($allTranslatedStrings)]);
+                    
+                    // Apply translations back to the data structure
+                    foreach ($sections as $sectionIndex => &$section) {
+                        if (isset($translationMap['section_page_' . $sectionIndex])) {
+                            $section['pageLabel'] = $allTranslatedStrings[$translationMap['section_page_' . $sectionIndex]]->text;
+                        }
+
+                        if (isset($section['groups']) && is_array($section['groups'])) {
+                            foreach ($section['groups'] as $groupIndex => &$group) {
+                                if (!empty($group['label']) && isset($translationMap['section_group_' . $sectionIndex . '_' . $groupIndex])) {
+                                    $group['label'] = $allTranslatedStrings[$translationMap['section_group_' . $sectionIndex . '_' . $groupIndex]]->text;
+                                }
+
+                                // Apply buddy text translations
+                                if (isset($group['value']) && isset($group['value']['text']) && isset($translationMap['section_buddy_text_' . $sectionIndex . '_' . $groupIndex])) {
+                                    $group['value']['text'] = $allTranslatedStrings[$translationMap['section_buddy_text_' . $sectionIndex . '_' . $groupIndex]]->text;
+                                }
+
+                                if (isset($group['questions']) && is_array($group['questions'])) {
+                                    foreach ($group['questions'] as $questionIndex => &$question) {
+                                        if (!empty($question['description']) && isset($translationMap['section_question_desc_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex])) {
+                                            $question['description'] = $allTranslatedStrings[$translationMap['section_question_desc_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex]]->text;
+                                        }
+
+                                        if (!empty($question['label']) && isset($translationMap['section_question_label_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex])) {
+                                            $question['label'] = $allTranslatedStrings[$translationMap['section_question_label_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex]]->text;
+                                        }
+
+                                        if (!empty($question['poster']) && !empty($question['poster']['text']) && isset($translationMap['section_poster_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex])) {
+                                            $question['poster']['text'] = $allTranslatedStrings[$translationMap['section_poster_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex]]->text;
+                                        }
+
+                                        // Apply option translations
+                                        if (isset($question['data']) && is_array($question['data'])) {
+                                            foreach ($question['data'] as $oIndex => &$option) {
+                                                if (!empty($option['label']) && isset($translationMap['section_option_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex . '_' . $oIndex])) {
+                                                    $option['label'] = $allTranslatedStrings[$translationMap['section_option_' . $sectionIndex . '_' . $groupIndex . '_' . $questionIndex . '_' . $oIndex]]->text;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                } catch (\Exception $e) {
+                    \Log::error('DeepL section batch translation error: ' . $e->getMessage());
+                }
+            }
+        }
+
+        return $sections;
+    }
+
+    protected function applyDeepLTranslationToWorkSchool(array $result): array
+    {
+        $key = env('DEEPL_KEY');
+        if ($key) {
+            $deeplClient = new \DeepL\DeepLClient($key);
+
+            // Debug: Log the structure of the data
+            \Log::info('applyDeepLTranslationToWorkSchool called', [
+                'result_keys' => array_keys($result),
+                'groups_count' => count($result['groups'] ?? []),
+                'first_group' => $result['groups'][0] ?? null
+            ]);
+
+            // Collect all strings that need translation
+            $stringsToTranslate = [];
+            $translationMap = [];
+
+            // Translate page label
+            if (!empty($result['pageLabel'])) {
+                $stringsToTranslate[] = $result['pageLabel'];
+                $translationMap['pageLabel'] = count($stringsToTranslate) - 1;
+            }
+
+            // Process groups
+            foreach ($result['groups'] as &$group) {
+                \Log::info('Processing group', [
+                    'group_keys' => array_keys($group),
+                    'has_questions' => isset($group['questions']),
+                    'questions_count' => isset($group['questions']) ? (is_array($group['questions']) ? count($group['questions']) : $group['questions']->count()) : 0
+                ]);
+
+                // Translate group label
+                if (!empty($group['label'])) {
+                    $stringsToTranslate[] = $group['label'];
+                    $translationMap['group_' . $group['label']] = count($stringsToTranslate) - 1;
+                }
+
+                // Process questions
+                if (isset($group['questions'])) {
+                    $questions = is_array($group['questions']) ? $group['questions'] : $group['questions']->toArray();
+                    
+                    foreach ($questions as $qIndex => &$question) {
+                        // Debug: Log question structure
+                        \Log::info('Processing question', [
+                            'question_keys' => array_keys($question),
+                            'has_description' => !empty($question['description']),
+                            'description' => $question['description'] ?? 'NO_DESCRIPTION'
+                        ]);
+
+                        // Collect question strings
+                        if (!empty($question['description'])) {
+                            $stringsToTranslate[] = $question['description'];
+                            $translationMap['question_desc_' . $qIndex] = count($stringsToTranslate) - 1;
+                        }
+
+                        if (!empty($question['label'])) {
+                            // Check if English label is missing or identical to Swedish
+                            $shouldTranslate = true;
+                            if (isset($question['label_en']) && !empty($question['label_en'])) {
+                                // If English label exists and is different from Swedish, use it
+                                if ($question['label_en'] !== $question['label']) {
+                                    $question['label'] = $question['label_en'];
+                                    $shouldTranslate = false;
+                                }
+                            }
+                            
+                            if ($shouldTranslate) {
+                                $stringsToTranslate[] = $question['label'];
+                                $translationMap['question_label_' . $qIndex] = count($stringsToTranslate) - 1;
+                            }
+                        }
+
+                        if (!empty($question['help_text'])) {
+                            $stringsToTranslate[] = $question['help_text'];
+                            $translationMap['question_help_' . $qIndex] = count($stringsToTranslate) - 1;
+                        }
+
+                        // Collect option strings
+                        if (isset($question['data']) && is_array($question['data'])) {
+                            foreach ($question['data'] as $oIndex => $option) {
+                                if (!empty($option['label'])) {
+                                    // Check if English label is missing or identical to Swedish
+                                    $shouldTranslate = true;
+                                    if (isset($option['label_en']) && !empty($option['label_en'])) {
+                                        // If English label exists and is different from Swedish, use it
+                                        if ($option['label_en'] !== $option['label']) {
+                                            $option['label'] = $option['label_en'];
+                                            $shouldTranslate = false;
+                                        }
+                                    }
+                                    
+                                    if ($shouldTranslate) {
+                                        $stringsToTranslate[] = $option['label'];
+                                        $translationMap['option_' . $qIndex . '_' . $oIndex] = count($stringsToTranslate) - 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Batch translate all strings at once
+            if (!empty($stringsToTranslate)) {
+                \Log::info('Batch translating', ['count' => count($stringsToTranslate)]);
+                
+                try {
+                    // Split into chunks of 50 to avoid DeepL limits
+                    $chunks = array_chunk($stringsToTranslate, 50);
+                    $allTranslatedStrings = [];
+                    
+                    foreach ($chunks as $chunkIndex => $chunk) {
+                        \Log::info('Translating chunk', ['chunk_index' => $chunkIndex, 'size' => count($chunk)]);
+                        
+                        $translatedChunk = $deeplClient->translateText($chunk, 'sv', 'en-US');
+                        $allTranslatedStrings = array_merge($allTranslatedStrings, $translatedChunk);
+                        
+                        // Small delay between chunks to avoid rate limiting
+                        if ($chunkIndex < count($chunks) - 1) {
+                            usleep(200000); // 200ms delay
+                        }
+                    }
+                    
+                    \Log::info('Batch translation completed', ['total_translated' => count($allTranslatedStrings)]);
+                    
+                    // Apply translations back to the data structure
+                    if (!empty($result['pageLabel']) && isset($translationMap['pageLabel'])) {
+                        $result['pageLabel'] = $allTranslatedStrings[$translationMap['pageLabel']]->text;
+                    }
+
+                    foreach ($result['groups'] as &$group) {
+                        if (!empty($group['label']) && isset($translationMap['group_' . $group['label']])) {
+                            $group['label'] = $allTranslatedStrings[$translationMap['group_' . $group['label']]]->text;
+                        }
+
+                        if (isset($group['questions'])) {
+                            $questions = is_array($group['questions']) ? $group['questions'] : $group['questions']->toArray();
+                            
+                            foreach ($questions as $qIndex => &$question) {
+                                if (!empty($question['description']) && isset($translationMap['question_desc_' . $qIndex])) {
+                                    $question['description'] = $allTranslatedStrings[$translationMap['question_desc_' . $qIndex]]->text;
+                                }
+
+                                if (!empty($question['label']) && isset($translationMap['question_label_' . $qIndex])) {
+                                    $question['label'] = $allTranslatedStrings[$translationMap['question_label_' . $qIndex]]->text;
+                                }
+
+                                if (!empty($question['help_text']) && isset($translationMap['question_help_' . $qIndex])) {
+                                    $question['help_text'] = $allTranslatedStrings[$translationMap['question_help_' . $qIndex]]->text;
+                                }
+
+                                if (isset($question['data']) && is_array($question['data'])) {
+                                    foreach ($question['data'] as $oIndex => &$option) {
+                                        if (!empty($option['label']) && isset($translationMap['option_' . $qIndex . '_' . $oIndex])) {
+                                            $option['label'] = $allTranslatedStrings[$translationMap['option_' . $qIndex . '_' . $oIndex]]->text;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Update the group with translated questions
+                            $group['questions'] = $questions;
+                        }
+                    }
+                    
+                } catch (\Exception $e) {
+                    \Log::error('DeepL batch translation error: ' . $e->getMessage());
+                }
+            }
+        }
+
+        return $result;
     }
 }

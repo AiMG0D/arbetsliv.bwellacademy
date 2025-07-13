@@ -26,8 +26,12 @@ use Illuminate\Support\Str;
 
 class ProfilesController extends Controller
 {
-    public function profileValues(Profile $profile)
+    public function profileValues(Profile $profile, Request $request)
     {
+        // Set locale based on request
+        $locale = $this->getLocaleFromRequest($request);
+        App::setLocale($locale);
+        
         return $profile->values;
     }
 
@@ -52,6 +56,10 @@ class ProfilesController extends Controller
 
     public function updateProfileValue(Profile $profile, Request $request)
     {
+        // Set locale based on request
+        $locale = $this->getLocaleFromRequest($request);
+        App::setLocale($locale);
+        
         if ($profile->user_id !== $request->user()->id) {
             abort(403);
         }
@@ -448,5 +456,20 @@ class ProfilesController extends Controller
         return response()->json([
             'status' => 'success',
         ]);
+    }
+
+    /**
+     * Get locale from request parameters or headers
+     */
+    private function getLocaleFromRequest(Request $request): string
+    {
+        // Priority: query parameter > header > default
+        $locale = $request->query('lang') ?? 
+                  $request->header('Accept-Language') ?? 
+                  'sv';
+        
+        // Validate locale
+        $validLocales = ['sv', 'en'];
+        return in_array($locale, $validLocales) ? $locale : 'sv';
     }
 }
